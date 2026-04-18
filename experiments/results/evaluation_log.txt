@@ -1,0 +1,107 @@
+==========================================
+   SYSTEM EVALUATION LOG (QUALITATIVE)
+==========================================
+
+QUERY: What is the minimum GPA requirement for graduation?
+--------------------------------------------------
+>>> BASELINE RETRIEVAL (TF-IDF):
+  [1] Source: pg_handbook.pdf (Page 20) | Score: 0.1009
+      Snippet: his/her admission/registration will be suspended. However, such students may resume the same programme subject to meeting the following conditions: (1...
+  [2] Source: ug_handbook.pdf (Page 57) | Score: 0.1005
+      Snippet: credit hours. CGPA of the new degree is calculated based on the courses only undertaken during the second degree. a. Conditions for Second Degree. Fol...
+  [3] Source: ug_handbook.pdf (Page 55) | Score: 0.0992
+      Snippet: latest by end of the 4th semester. Courses with failure (F grade) will not be reflected on Student Transcript. (17) Students will be charged a tuition...
+
+>>> HYBRID LSH RETRIEVAL (MinHash + SimHash):
+  [1] Source: pg_handbook.pdf (Page 34) | Score: 0.0606
+      Snippet: NUST Postgraduate Student Handbook 31 CHAPTER 5: Award of Ph.D. Degree and Academic Deficiencies for Ph.D. Students 1. Award of Ph.D. Degree. On recom...
+  [2] Source: ug_handbook.pdf (Page 19) | Score: 0.0581
+      Snippet: of studies is graded as follows: Letter Grade Grade Points A 4.00 B+ 3.50 B 3.00 C+ 2.5 C 2.00 D+ (for UG only) 1.50 D (for UG only) 1.00 F 0.00 I Inc...
+  [3] Source: pg_handbook.pdf (Page 27) | Score: 0.0542
+      Snippet: F 0.00 I Incomplete W Dropped Q Qualified T Transfer XF 0.00 (F Grade due to shortage of attendance) d. University follows a relative grading system. ...
+
+>>> GENERATED LLM ANSWER (using LSH Context):
+  According to Excerpt 1, the minimum cumulative GPA required for the award of Ph.D. degree is 3.5 out of 4.0 in the 18 credit hours of level courses.
+
+Additionally, according to Excerpt 2, the minimum CGPA required to successfully complete the degree requirement for undergraduate programmes is 2.00, except for specific programmes which require a minimum CGPA of 2.50.
+
+However, since the question specifically asks about the minimum GPA requirement for graduation, and Excerpt 1 provides the minimum GPA requirement for Ph.D. students, I will provide the answer based on that excerpt.
+
+For Ph.D. students, the minimum cumulative GPA required is 3.5 out of 4.0.
+
+
+==========================================
+
+QUERY: What happens if a student fails a course?
+--------------------------------------------------
+>>> BASELINE RETRIEVAL (TF-IDF):
+  [1] Source: ug_handbook.pdf (Page 50) | Score: 0.1985
+      Snippet: For a student who fails in a subject, and after repetition fails again (irrespective of the number of times s/he repeats), the number of Fs counted in...
+  [2] Source: pg_handbook.pdf (Page 56) | Score: 0.1956
+      Snippet: NUST Postgraduate Student Handbook 53 ii. In case a student does not deposit the fee by the due date after the 2ndweek, he/she will be de-registered w...
+  [3] Source: ug_handbook.pdf (Page 68) | Score: 0.1877
+      Snippet: the due date after the 2nd week, he/she will be de-registered with W grades along with the outstanding fee. (e) Any student who fails to pay their hos...
+
+>>> HYBRID LSH RETRIEVAL (MinHash + SimHash):
+  [1] Source: ug_handbook.pdf (Page 26) | Score: 0.1211
+      Snippet: but does not qualify for Suspension of Registration (6) Earns five F/XF grades or more in the first semester only. Note: If a student is likely to be ...
+  [2] Source: pg_handbook.pdf (Page 15) | Score: 0.1111
+      Snippet: degree. 17. Award of Grades a. Award of Grade F. In addition to the F grade awarded based on academic failure, a student is not allowed to appear in t...
+  [3] Source: ug_handbook.pdf (Page 37) | Score: 0.0934
+      Snippet: than 2.00 d. I (Incomplete) grade in any course 23. Disposal of Academically Deficient Students. The case(s) of an academically deficient student(s) w...
+
+>>> GENERATED LLM ANSWER (using LSH Context):
+  If a student fails a course, they may be awarded an F grade (Excerpt 2, Page 15). In addition, if a student earns five F/XF grades or more in the first semester only, they do not qualify for Suspension of Registration (Excerpt 1, Page 26). 
+
+According to Excerpt 2, a student is not allowed to appear in the final examination of a subject in which their attendance is less than 75%, and thus shall be awarded XF.
+
+
+==========================================
+
+QUERY: What is the attendance policy?
+--------------------------------------------------
+>>> BASELINE RETRIEVAL (TF-IDF):
+  [1] Source: ug_handbook.pdf (Page 16) | Score: 0.1545
+      Snippet: 12 NUST Undergraduate Student Handbook individuals or groups of students and each student is required to present the project work. f. Attendance. 75% ...
+  [2] Source: ug_handbook.pdf (Page 31) | Score: 0.1143
+      Snippet: NUST Undergraduate Student Handbook 27 5. Academic Standards for Award of Degree. The Grade Point will be awarded based on the absolute grading system...
+  [3] Source: pg_handbook.pdf (Page 87) | Score: 0.1000
+      Snippet: NUST Postgraduate Student Handbook 84 14. Attendance. To ensure security as well as the presence of students in the hostels, Biometric Attendance Syst...
+
+>>> HYBRID LSH RETRIEVAL (MinHash + SimHash):
+  [1] Source: pg_handbook.pdf (Page 39) | Score: 0.0633
+      Snippet: part of the Thesis Evaluation Committee). The participation of atleast one foreign expert will be mandatory through video conferencing. c. The student...
+  [2] Source: ug_handbook.pdf (Page 45) | Score: 0.0604
+      Snippet: who, because of illness or other acceptable reasons approved by the DBS/FBS, fails to complete the required work in any course or misses any examinati...
+  [3] Source: ug_handbook.pdf (Page 34) | Score: 0.0522
+      Snippet: Evaluation of Thesis Report - 1 10-20% External Thesis Report Evaluation - To be carried out by External 60% Studio Internal Evaluation (to be carried...
+
+>>> GENERATED LLM ANSWER (using LSH Context):
+  According to Excerpt 2, the attendance policy states that a student who, because of illness or other acceptable reasons approved by the DBS/FBS, fails to complete the required work in any course or misses any examination/test, provided their attendance in a particular course is not less than 75%, is given an 'I' grade.
+
+
+==========================================
+
+QUERY: How many times can a course be repeated?
+--------------------------------------------------
+>>> BASELINE RETRIEVAL (TF-IDF):
+  [1] Source: ug_handbook.pdf (Page 50) | Score: 0.2059
+      Snippet: For a student who fails in a subject, and after repetition fails again (irrespective of the number of times s/he repeats), the number of Fs counted in...
+  [2] Source: ug_handbook.pdf (Page 41) | Score: 0.1840
+      Snippet: in the computation of CGPA. (4) The student who repeats a course to clear a W grade shall not be eligible for academic honours/awards except Rector s ...
+  [3] Source: ug_handbook.pdf (Page 27) | Score: 0.1491
+      Snippet: in this case will be one F only. (2) Improvement of CGPA. A student may repeat a course to improve his/her CGPA subject to the following provisions: (...
+
+>>> HYBRID LSH RETRIEVAL (MinHash + SimHash):
+  [1] Source: pg_handbook.pdf (Page 30) | Score: 0.0617
+      Snippet: with the recommendation of the Dean. d. Letter grade W will appear in the student s transcript against the specific course and will not be used for th...
+  [2] Source: pg_handbook.pdf (Page 43) | Score: 0.0484
+      Snippet: in a course and deposit the prescribed fee. The student can withdraw own name from the course within two weeks from the start of the semester without ...
+  [3] Source: ug_handbook.pdf (Page 53) | Score: 0.0389
+      Snippet: to the instructions for that particular course. c. Course Fee. Student(s) will register in a course and deposit the prescribed fee. The student can wi...
+
+>>> GENERATED LLM ANSWER (using LSH Context):
+  I cannot find this information in the provided handbook excerpts.
+
+
+==========================================

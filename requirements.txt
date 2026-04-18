@@ -1,0 +1,6 @@
+pymupdf
+tqdm
+scikit-learn
+datasketch
+groq
+python-dotenv

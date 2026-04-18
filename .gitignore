@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.env
+
+# Project specific Data & Indices
+# Ignoring large generated files and original PDFs
+data/raw/*.pdf
+data/chunks/*.json
+data/chunks/*.csv
+data/indices/*.pkl
+
+# You may want to keep the folders themselves, so we ignore only the contents above.
+# If you want to entirely ignore the folders, use:
+# data/
+# !data/.gitkeep
+
+# Experiment Results (can be large)
+# Un-comment if you want to ignore experiment outputs
+# experiments/results/
+
+# OS specific files
+.DS_Store
+Thumbs.db

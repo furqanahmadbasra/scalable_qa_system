@@ -12,7 +12,8 @@ OUTPUT_FILE = os.path.join(CHUNKS_DIR, "chunks.json")
 # Tighter limits to improve LSH Jaccard similarity (Smaller denomintor!)
 MIN_WORDS = 40
 MAX_WORDS = 150
-OVERLAP_WORDS = 20   # Context carry-over
+OVERLAP_WORDS = 40   # Context carry-over increased to simulate contextual chunking
+
 
 
 def read_pdf(path):

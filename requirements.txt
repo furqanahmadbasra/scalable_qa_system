@@ -4,3 +4,4 @@ scikit-learn
 datasketch
 groq
 python-dotenv
+nltk

@@ -6,6 +6,7 @@ import hashlib
 
 from datasketch import MinHash, MinHashLSH
 from tqdm import tqdm
+from nltk.stem import PorterStemmer
 
 
 CHUNKS_FILE     = os.path.join(os.path.dirname(__file__), "..", "data", "chunks", "chunks.json")
@@ -22,11 +23,15 @@ THRESHOLD = 0.1
 # simhash bit width
 SIMHASH_BITS = 64
 
+stemmer = PorterStemmer()
+
 
 def clean_string(text):
     text = text.lower()
     text = re.sub(r'[^a-z0-9\s]', ' ', text)
-    return re.sub(r'\s+', ' ', text).strip()
+    tokens = text.split()
+    stemmed = [stemmer.stem(t) for t in tokens]
+    return " ".join(stemmed)
 
 
 def clean_tokens(text):

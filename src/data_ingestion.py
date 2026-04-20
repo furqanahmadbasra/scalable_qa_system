@@ -9,10 +9,10 @@ RAW_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "raw")
 CHUNKS_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "chunks")
 OUTPUT_FILE = os.path.join(CHUNKS_DIR, "chunks.json")
 
-# Tighter limits to improve LSH Jaccard similarity (Smaller denomintor!)
-MIN_WORDS = 40
-MAX_WORDS = 150
-OVERLAP_WORDS = 40   # Context carry-over increased to simulate contextual chunking
+# Chunk size follows project spec: 200–500 words per chunk
+MIN_WORDS = 200
+MAX_WORDS = 500
+OVERLAP_WORDS = 100  # ~20% overlap for context carry-over between chunks
 
 
 
@@ -80,10 +80,11 @@ def group_into_chunks(pieces, page_num, source, starting_id):
     for piece in pieces:
         piece_words = piece.split()
 
-        # if adding this piece would bust the max, flush first
+        # if adding this piece would bust the max, try to flush first
         if len(current_words) + len(piece_words) > MAX_WORDS and current_words:
-            text = " ".join(current_words)
             if len(current_words) >= MIN_WORDS:
+                # valid chunk — flush it, carry overlap into next
+                text = " ".join(current_words)
                 chunks.append({
                     "chunk_id": cid,
                     "source": source,
@@ -93,7 +94,10 @@ def group_into_chunks(pieces, page_num, source, starting_id):
                 })
                 cid += 1
                 overlap_tail = current_words[-OVERLAP_WORDS:]
-            current_words = overlap_tail + piece_words
+                current_words = overlap_tail + piece_words
+            else:
+                # too short to flush — keep accumulating instead of resetting
+                current_words += piece_words
         else:
             current_words += piece_words
 

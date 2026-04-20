@@ -43,12 +43,12 @@ def run_evaluation():
         output_log.append(f"QUERY: {query}\n" + "-"*50)
         
         # 1. Baseline (TF-IDF)
-        tfidf_results = search_tfidf(query, tfidf_vectorizer, tfidf_matrix, tfidf_chunks, top_k=3)
+        tfidf_results = search_tfidf(query, tfidf_vectorizer, tfidf_matrix, tfidf_chunks, top_k=10)
         output_log.append(">>> BASELINE RETRIEVAL (TF-IDF):")
         output_log.append(format_chunks(tfidf_results))
         
         # 2. LSH (Hybrid)
-        lsh_results = hybrid_search(query, lsh_index, minhash_objects, simhash_fps, chunk_shingles, lsh_chunks, top_k=3)
+        lsh_results = hybrid_search(query, lsh_index, minhash_objects, simhash_fps, chunk_shingles, lsh_chunks, top_k=10)
         output_log.append(">>> HYBRID LSH RETRIEVAL (MinHash + SimHash):")
         output_log.append(format_chunks(lsh_results))
         

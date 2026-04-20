@@ -76,41 +76,42 @@ def compute_simhash(tokens, num_bits=SIMHASH_BITS):
 
 # ── run ───────────────────────────────────────────────────────────────────────
 
-print("loading chunks...")
-with open(CHUNKS_FILE, "r", encoding="utf-8") as f:
-    chunks = json.load(f)
+if __name__ == "__main__":
+    print("loading chunks...")
+    with open(CHUNKS_FILE, "r", encoding="utf-8") as f:
+        chunks = json.load(f)
 
-print(f"building minhash + simhash for {len(chunks)} chunks...")
+    print(f"building minhash + simhash for {len(chunks)} chunks...")
 
-lsh_index       = MinHashLSH(threshold=THRESHOLD, num_perm=NUM_PERM)
-minhash_objects = {}   # chunk_id → MinHash object
-simhash_fps     = {}   # chunk_id → int fingerprint
-chunk_shingles  = {}   # chunk_id → set of shingles (for jaccard re-ranking later)
+    lsh_index       = MinHashLSH(threshold=THRESHOLD, num_perm=NUM_PERM)
+    minhash_objects = {}   # chunk_id → MinHash object
+    simhash_fps     = {}   # chunk_id → int fingerprint
+    chunk_shingles  = {}   # chunk_id → set of shingles (for jaccard re-ranking later)
 
-for chunk in tqdm(chunks, desc="  indexing", unit="chunk"):
-    cid       = chunk["chunk_id"]
-    text_c    = clean_string(chunk["text"])
-    tokens    = text_c.split()
-    shingles  = make_shingles(text_c)
+    for chunk in tqdm(chunks, desc="  indexing", unit="chunk"):
+        cid       = chunk["chunk_id"]
+        text_c    = clean_string(chunk["text"])
+        tokens    = text_c.split()
+        shingles  = make_shingles(text_c)
 
-    mh = compute_minhash(shingles)
-    sh = compute_simhash(tokens)
+        mh = compute_minhash(shingles)
+        sh = compute_simhash(tokens)
 
-    lsh_index.insert(str(cid), mh)
-    minhash_objects[cid] = mh
-    simhash_fps[cid]     = sh
-    chunk_shingles[cid]  = shingles
+        lsh_index.insert(str(cid), mh)
+        minhash_objects[cid] = mh
+        simhash_fps[cid]     = sh
+        chunk_shingles[cid]  = shingles
 
-os.makedirs(INDICES_DIR, exist_ok=True)
+    os.makedirs(INDICES_DIR, exist_ok=True)
 
-with open(LSH_INDEX_FILE, "wb") as f:
-    pickle.dump(lsh_index, f)
-with open(MINHASH_FILE, "wb") as f:
-    pickle.dump(minhash_objects, f)
-with open(SIMHASH_FILE, "wb") as f:
-    pickle.dump(simhash_fps, f)
-with open(SHINGLES_FILE, "wb") as f:
-    pickle.dump(chunk_shingles, f)
+    with open(LSH_INDEX_FILE, "wb") as f:
+        pickle.dump(lsh_index, f)
+    with open(MINHASH_FILE, "wb") as f:
+        pickle.dump(minhash_objects, f)
+    with open(SIMHASH_FILE, "wb") as f:
+        pickle.dump(simhash_fps, f)
+    with open(SHINGLES_FILE, "wb") as f:
+        pickle.dump(chunk_shingles, f)
 
-print(f"done — indices saved to {INDICES_DIR}")
-print(f"  lsh bands/rows: b={lsh_index.b}, r={lsh_index.r}")
+    print(f"done — indices saved to {INDICES_DIR}")
+    print(f"  lsh bands/rows: b={lsh_index.b}, r={lsh_index.r}")

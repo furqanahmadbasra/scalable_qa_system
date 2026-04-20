@@ -30,20 +30,6 @@ def load_lsh_index():
         chunks = json.load(f)
     return lsh_index, minhash_objects, simhash_fps, chunk_shingles, chunks
 
-def expand_query(query):
-    """Expanded synonym dictionary for high-value NUST terms."""
-    query = query.lower()
-    expansions = {
-        "gpa": "cgpa sgpa grade point average cumulative",
-        "fail": "f grade academic deficiency withdrawn repeat repetition retake clear improve",
-        "attendance": "absent participation present 75%",
-        "repeat": "repetition retake clear improve",
-        "graduation": "degree award complete requirement pass",
-    }
-    for k, v in expansions.items():
-        if k in query:
-            query += " " + v
-    return query
 
 def jaccard(s1, s2):
     if not s1 or not s2:
@@ -59,7 +45,6 @@ def hamming(f1, f2, bits=SIMHASH_BITS):
     return dist
 
 def search_minhash(query, lsh_index, minhash_objects, chunk_shingles, chunks, top_k=5):
-    query = expand_query(query)
     text_c   = clean_string(query)
     shingles = make_shingles(text_c)
     qmh      = compute_minhash(shingles)
@@ -97,7 +82,6 @@ def search_minhash(query, lsh_index, minhash_objects, chunk_shingles, chunks, to
     return results
 
 def search_simhash(query, simhash_fps, chunks, threshold=15, top_k=5):
-    query = expand_query(query)
     text_c = clean_string(query)
     tokens = text_c.split()
     q_fp   = compute_simhash(tokens)
@@ -128,7 +112,6 @@ def search_simhash(query, simhash_fps, chunks, threshold=15, top_k=5):
     return results
 
 def hybrid_search(query, lsh_index, minhash_objects, simhash_fps, chunk_shingles, chunks, top_k=5):
-    query = expand_query(query)
     text_c   = clean_string(query)
     tokens   = text_c.split()
     shingles = make_shingles(text_c)
@@ -151,16 +134,18 @@ def hybrid_search(query, lsh_index, minhash_objects, simhash_fps, chunk_shingles
     # Hybrid Scoring
     ranked = []
     for cid in all_candidates:
-        # 1. Exact Jaccard
+        # 1. Exact Jaccard on character 4-gram shingles
         j_score = jaccard(shingles, chunk_shingles[cid])
-        
-        # 2. Normalized Simhash (1 - dist/64)
-        c_fp = simhash_fps[cid]
-        h_dist = hamming(q_fp, c_fp)
-        h_score = max(0, 1.0 - (h_dist / SIMHASH_BITS))
-        
-        # Combined weight (50% Jaccard, 50% Hamming)
-        hybrid_score = (0.5 * j_score) + (0.5 * h_score)
+
+        # 2. Normalised SimHash
+        #    Random pairs have expected Hamming dist = 32 (half of 64 bits)
+        #    We centre the score there: dist=0 → 1.0, dist=32 → 0.0, dist>32 → clamped 0
+        c_fp    = simhash_fps[cid]
+        h_dist  = hamming(q_fp, c_fp)
+        h_score = max(0.0, 1.0 - (2.0 * h_dist / SIMHASH_BITS))
+
+        # Combined weight (70% Jaccard, 30% SimHash)
+        hybrid_score = (0.7 * j_score) + (0.3 * h_score)
         ranked.append((cid, hybrid_score))
 
     ranked.sort(key=lambda x: -x[1])

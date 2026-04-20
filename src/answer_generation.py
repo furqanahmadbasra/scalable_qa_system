@@ -90,7 +90,7 @@ if __name__ == "__main__":
             simhash_fps, 
             chunk_shingles, 
             chunks, 
-            top_k=3
+            top_k=10
         )
         
         print(f"Retrieved {len(retrieved_chunks)} chunks. Generating answer...")

@@ -27,26 +27,26 @@ QUERY: What is the minimum GPA requirement for graduation?
       Snippet: NUST Postgraduate Student Handbook 17 2. Double Registration. The student may register for two-degree programmes at a time as per the NUST Policy. NUS...
 
 >>> HYBRID LSH RETRIEVAL (MinHash + SimHash):
-  [1] Source: ug_handbook.pdf (Page 105) | Score: 0.1258
+  [1] Source: ug_handbook.pdf (Page 105) | Score: 0.1209
       Snippet: NUST Undergraduate Student Handbook 101 c. Assistant Director Hostels (Male) d. Assistant Director Hostels (Female) e. Assistant Director Hostels (Mes...
-  [2] Source: pg_handbook.pdf (Page 42) | Score: 0.1181
+  [2] Source: pg_handbook.pdf (Page 42) | Score: 0.1106
       Snippet: NUST Postgraduate Student Handbook 39 Directorate, from which the Ph.D. Processing Committee will select at least two foreign, and two local external ...
-  [3] Source: ug_handbook.pdf (Page 40) | Score: 0.1162
+  [3] Source: ug_handbook.pdf (Page 40) | Score: 0.1089
       Snippet: 36 NUST Undergraduate Student Handbook (2) Has been recommended by the respective institution. b. On re-admission, the student will pay the prescribed...
-  [4] Source: pg_handbook.pdf (Page 68) | Score: 0.1102
+  [4] Source: pg_handbook.pdf (Page 68) | Score: 0.1068
       Snippet: NUST Postgraduate Student Handbook 65 b. Classroom Standards. The individual faculty member is primarily responsible for managing the classroom enviro...
-  [5] Source: pg_handbook.pdf (Page 90) | Score: 0.1073
+  [5] Source: pg_handbook.pdf (Page 90) | Score: 0.1017
       Snippet: NUST Postgraduate Student Handbook 87 29. Hostel Administration. Hostel administration/management is as under: a. Director Field Administration b. Dep...
-  [6] Source: pg_handbook.pdf (Page 52) | Score: 0.1040
-      Snippet: NUST Postgraduate Student Handbook 49 (e) How to Apply. Eligible students can apply through respective institutions after the announcement of first se...
-  [7] Source: pg_handbook.pdf (Page 77) | Score: 0.1035
+  [6] Source: pg_handbook.pdf (Page 77) | Score: 0.0999
       Snippet: NUST Postgraduate Student Handbook 74 (1) Step 1: Who should you go to? (a) Faculty/ Officer. If the complaint concerns a certain action or inaction b...
-  [8] Source: ug_handbook.pdf (Page 33) | Score: 0.1007
-      Snippet: NUST Undergraduate Student Handbook 29 Studio 2 contact hours 1 per week for each CH Portfolio Review/ Studio Participation 10-20 Studio Work 80-90 b....
-  [9] Source: ug_handbook.pdf (Page 83) | Score: 0.1007
+  [7] Source: pg_handbook.pdf (Page 52) | Score: 0.0994
+      Snippet: NUST Postgraduate Student Handbook 49 (e) How to Apply. Eligible students can apply through respective institutions after the announcement of first se...
+  [8] Source: ug_handbook.pdf (Page 83) | Score: 0.0974
       Snippet: NUST Undergraduate Student Handbook 79 b. Classroom Standards. The individual faculty member is primarily responsible for managing the classroom envir...
-  [10] Source: ug_handbook.pdf (Page 49) | Score: 0.0991
-      Snippet: NUST Undergraduate Student Handbook 45 (4) Suspension on reasons beyond the student's control or authorized grounds/sanctioned leave from the competen...
+  [9] Source: ug_handbook.pdf (Page 33) | Score: 0.0927
+      Snippet: NUST Undergraduate Student Handbook 29 Studio 2 contact hours 1 per week for each CH Portfolio Review/ Studio Participation 10-20 Studio Work 80-90 b....
+  [10] Source: pg_handbook.pdf (Page 36) | Score: 0.0918
+      Snippet: NUST Postgraduate Student Handbook 33 c. In addition to the minimum 18 credit hours coursework, the pre-requisite courses, prescribed by PEAC at the t...
 
 >>> GENERATED LLM ANSWER (using LSH Context):
   I cannot find this information in the provided handbook excerpts.
@@ -79,31 +79,37 @@ QUERY: What happens if a student fails a course?
       Snippet: NUST Postgraduate Student Handbook 13 grade in that subject. The XF grade so obtained will only be cleared by repetition of the course whenever offere...
 
 >>> HYBRID LSH RETRIEVAL (MinHash + SimHash):
-  [1] Source: ug_handbook.pdf (Page 31) | Score: 0.1780
+  [1] Source: ug_handbook.pdf (Page 31) | Score: 0.1728
       Snippet: NUST Undergraduate Student Handbook 27 5. Academic Standards for Award of Degree. The Grade Point will be awarded based on the absolute grading system...
-  [2] Source: ug_handbook.pdf (Page 32) | Score: 0.1565
+  [2] Source: ug_handbook.pdf (Page 32) | Score: 0.1527
       Snippet: 28 NUST Undergraduate Student Handbook 8. Parameters for determining a student's grade in a course are laid down as under: a. A combined grading syste...
-  [3] Source: ug_handbook.pdf (Page 55) | Score: 0.1537
+  [3] Source: ug_handbook.pdf (Page 55) | Score: 0.1496
       Snippet: NUST Undergraduate Student Handbook 51 (7) Minors may also be offered in Summer Semester, if the resources permit. (8) MS level courses (SINES & USPCA...
-  [4] Source: pg_handbook.pdf (Page 63) | Score: 0.1508
-      Snippet: NUST Postgraduate Student Handbook 60 available at all times to respond to emergencies swiftly. Upon visiting NMC, students receive outpatient medical...
-  [5] Source: pg_handbook.pdf (Page 48) | Score: 0.1499
+  [4] Source: pg_handbook.pdf (Page 48) | Score: 0.1454
       Snippet: NUST Postgraduate Student Handbook 45 (2) Lack of confidence (3) Poor class performance (4) Lack of motivation (5) Adjustment problems / Homesickness ...
-  [6] Source: pg_handbook.pdf (Page 67) | Score: 0.1447
+  [5] Source: pg_handbook.pdf (Page 63) | Score: 0.1452
+      Snippet: NUST Postgraduate Student Handbook 60 available at all times to respond to emergencies swiftly. Upon visiting NMC, students receive outpatient medical...
+  [6] Source: pg_handbook.pdf (Page 67) | Score: 0.1413
       Snippet: NUST Postgraduate Student Handbook 64 a. Cheating. Intentionally using or attempting to use unauthorized materials, information, or study aids in any ...
-  [7] Source: ug_handbook.pdf (Page 82) | Score: 0.1447
+  [7] Source: ug_handbook.pdf (Page 82) | Score: 0.1412
       Snippet: 78 NUST Undergraduate Student Handbook a. Cheating. Intentionally using or attempting to use unauthorized materials, information, or study aids in any...
-  [8] Source: pg_handbook.pdf (Page 42) | Score: 0.1431
-      Snippet: NUST Postgraduate Student Handbook 39 Directorate, from which the Ph.D. Processing Committee will select at least two foreign, and two local external ...
-  [9] Source: pg_handbook.pdf (Page 31) | Score: 0.1429
+  [8] Source: pg_handbook.pdf (Page 31) | Score: 0.1406
       Snippet: NUST Postgraduate Student Handbook 28 Programme / Credit Hours Ws in a Semester Maximum Ws at a Time MBA 66 Credit Hours 2 3 MS Economics /MS HRM 36 C...
-  [10] Source: ug_handbook.pdf (Page 78) | Score: 0.1412
-      Snippet: 74 NUST Undergraduate Student Handbook contact their helpline for assistance (051-90851666). Additionally, an ambulance service is available at all ti...
+  [9] Source: pg_handbook.pdf (Page 42) | Score: 0.1368
+      Snippet: NUST Postgraduate Student Handbook 39 Directorate, from which the Ph.D. Processing Committee will select at least two foreign, and two local external ...
+  [10] Source: ug_handbook.pdf (Page 63) | Score: 0.1365
+      Snippet: NUST Undergraduate Student Handbook 59 (4) Lack of motivation (5) Adjustment problems / Homesickness (6) Sadness and depression (7) Trauma (8) Stress ...
 
 >>> GENERATED LLM ANSWER (using LSH Context):
-  According to Excerpt 1, if a student fails a course, they will receive an F grade. Additionally, if a student's attendance in a particular course falls below 75%, they will not be allowed to sit in the End Semester Examination (Excerpt 1, Section 6). 
+  According to Excerpt 1, if a student fails a course, they will receive an F grade. Additionally, if a student's attendance in a particular course falls below 75%, they will not be allowed to sit in the End Semester Examination (Excerpt 1, Section 6).
 
-Regarding the impact of failing a course, Excerpt 2 states that a student will not be promoted to 7th semester (Bachelor of Industrial Design) and 9th semester (Bachelor of Architecture) respectively if s/he has any F/XF grade including non-credited course (Excerpt 2, Section c).
+If a student fails a course, they will receive an F grade, which is equivalent to 0.00 Grade Points (Excerpt 1, Section 7, Grade Numerical Equivalence).
+
+If a student has any F/XF grade, including non-credited courses, they will not be promoted to the 7th semester (Bachelor of Industrial Design) and 9th semester (Bachelor of Architecture) respectively (Excerpt 2, Section c).
+
+In the case of a Minor subject, if a student does not clear four courses, the courses with pass grades will be reflected in the transcripts as Additional Courses (Excerpt 3, Section 15).
+
+If a student earns a W grade in an elective course, they may clear the W by registering for and passing any other elective not necessarily the same course in which a W grade was earned (Excerpt 8, Section 11).
 
 
 ==========================================
@@ -133,29 +139,29 @@ QUERY: What is the attendance policy?
       Snippet: NUST Postgraduate Student Handbook 26 9. Award of F, I, and W Grades a. Award of Grade F. In addition to the F grade awarded based on the academic fai...
 
 >>> HYBRID LSH RETRIEVAL (MinHash + SimHash):
-  [1] Source: pg_handbook.pdf (Page 96) | Score: 0.1218
+  [1] Source: pg_handbook.pdf (Page 96) | Score: 0.1176
       Snippet: NUST Postgraduate Student Handbook 93 Annex B to Para 22 to Chapter 2 Re-Checking of Papers 1. Fill out the re-checking application form completely. 2...
-  [2] Source: ug_handbook.pdf (Page 49) | Score: 0.1125
-      Snippet: NUST Undergraduate Student Handbook 45 (4) Suspension on reasons beyond the student's control or authorized grounds/sanctioned leave from the competen...
-  [3] Source: ug_handbook.pdf (Page 106) | Score: 0.1124
+  [2] Source: ug_handbook.pdf (Page 106) | Score: 0.1082
       Snippet: 102 NUST Undergraduate Student Handbook Annex A to Para 30 to Chapter 2 Re-Checking of Papers 1. Fill out the re-checking application form completely....
-  [4] Source: pg_handbook.pdf (Page 14) | Score: 0.1111
-      Snippet: NUST Postgraduate Student Handbook 11 b. Answer books used in the examination are initialled by them. No other answer books are to be used. c. Answer ...
-  [5] Source: ug_handbook.pdf (Page 20) | Score: 0.1102
+  [3] Source: ug_handbook.pdf (Page 49) | Score: 0.1076
+      Snippet: NUST Undergraduate Student Handbook 45 (4) Suspension on reasons beyond the student's control or authorized grounds/sanctioned leave from the competen...
+  [4] Source: ug_handbook.pdf (Page 20) | Score: 0.1065
       Snippet: 16 NUST Undergraduate Student Handbook a. Credit Hour (CH) means a lecture of one-hour duration (including ten minutes break) per week per semester fo...
-  [6] Source: ug_handbook.pdf (Page 16) | Score: 0.1044
-      Snippet: 12 NUST Undergraduate Student Handbook individuals or groups of students and each student is required to present the project work. f. Attendance. 75% ...
-  [7] Source: pg_handbook.pdf (Page 18) | Score: 0.1014
+  [5] Source: pg_handbook.pdf (Page 14) | Score: 0.1063
+      Snippet: NUST Postgraduate Student Handbook 11 b. Answer books used in the examination are initialled by them. No other answer books are to be used. c. Answer ...
+  [6] Source: pg_handbook.pdf (Page 18) | Score: 0.1007
       Snippet: NUST Postgraduate Student Handbook 15 22. Re-assessment/Re-checking of Papers. Re-assessment/re-checking of papers means a re-evaluation of answer(s) ...
-  [8] Source: ug_handbook.pdf (Page 15) | Score: 0.0985
+  [7] Source: ug_handbook.pdf (Page 16) | Score: 0.0991
+      Snippet: 12 NUST Undergraduate Student Handbook individuals or groups of students and each student is required to present the project work. f. Attendance. 75% ...
+  [8] Source: ug_handbook.pdf (Page 15) | Score: 0.0962
       Snippet: NUST Undergraduate Student Handbook 11 Ser Programme Title CHs kk. Bachelor of Science in Artificial Intelligence 133 ll. Bachelor of Medicine, Bachel...
-  [9] Source: pg_handbook.pdf (Page 13) | Score: 0.0964
-      Snippet: NUST Postgraduate Student Handbook 10 e. Project. Project is research work aimed at testing the ability of a student to translate the theoretical know...
-  [10] Source: ug_handbook.pdf (Page 38) | Score: 0.0956
-      Snippet: 34 NUST Undergraduate Student Handbook b. The FBS of the institution upon receipt of recommendations from the concerned DBS, will be convened within t...
+  [9] Source: pg_handbook.pdf (Page 107) | Score: 0.0909
+      Snippet: NUST Postgraduate Student Handbook 104 UNDERTAKING Drug and Tobacco Awareness Certificate (By the Student & Parent/Guardian) Roll number/ Registration...
+  [10] Source: ug_handbook.pdf (Page 113) | Score: 0.0906
+      Snippet: NUST Undergraduate Student Handbook 109 a. Genuine medical issues (Submission of Medical Documents with prior recommendation of NMC). b. Exchange Prog...
 
 >>> GENERATED LLM ANSWER (using LSH Context):
-  According to Excerpt 6, 75% attendance is a must for a student to be allowed to appear in the End Semester Examination of a subject. Students shall be awarded XF grade if their respective attendance falls below 75%. No deviation from this rule is allowed under any circumstances.
+  According to Excerpt 7, 75% attendance is a must for a student to be allowed to appear in the End Semester Examination of a subject. Students shall be awarded XF grade if their respective attendance falls below 75%.
 
 
 ==========================================
@@ -185,33 +191,35 @@ QUERY: How many times can a course be repeated?
       Snippet: 38 NUST Undergraduate Student Handbook Semester subject to conditions laid down in chapter 8 (Summer Semester & Summer Camps). However, for Major Fiel...
 
 >>> HYBRID LSH RETRIEVAL (MinHash + SimHash):
-  [1] Source: ug_handbook.pdf (Page 31) | Score: 0.1217
+  [1] Source: ug_handbook.pdf (Page 31) | Score: 0.1213
       Snippet: NUST Undergraduate Student Handbook 27 5. Academic Standards for Award of Degree. The Grade Point will be awarded based on the absolute grading system...
-  [2] Source: pg_handbook.pdf (Page 40) | Score: 0.1181
+  [2] Source: pg_handbook.pdf (Page 40) | Score: 0.1108
       Snippet: NUST Postgraduate Student Handbook 37 e. The Defence Committee will give its decision with a majority vote and intimate Main Office NUST about the dec...
-  [3] Source: ug_handbook.pdf (Page 53) | Score: 0.1154
+  [3] Source: ug_handbook.pdf (Page 53) | Score: 0.1103
       Snippet: NUST Undergraduate Student Handbook 49 Chapter 6: Academic Provisions & Flexibilities 1. Summer Semester & Summer Camps. a. Summer Semester. A summer ...
-  [4] Source: pg_handbook.pdf (Page 67) | Score: 0.1127
+  [4] Source: pg_handbook.pdf (Page 67) | Score: 0.1102
       Snippet: NUST Postgraduate Student Handbook 64 a. Cheating. Intentionally using or attempting to use unauthorized materials, information, or study aids in any ...
-  [5] Source: ug_handbook.pdf (Page 82) | Score: 0.1127
+  [5] Source: ug_handbook.pdf (Page 82) | Score: 0.1102
       Snippet: 78 NUST Undergraduate Student Handbook a. Cheating. Intentionally using or attempting to use unauthorized materials, information, or study aids in any...
-  [6] Source: pg_handbook.pdf (Page 28) | Score: 0.1121
+  [6] Source: pg_handbook.pdf (Page 28) | Score: 0.1092
       Snippet: NUST Postgraduate Student Handbook 25 4. Offering and Registration of Courses. The School will finalize additional courses to be offered in a particul...
-  [7] Source: ug_handbook.pdf (Page 104) | Score: 0.1117
+  [7] Source: ug_handbook.pdf (Page 104) | Score: 0.1089
       Snippet: 100 NUST Undergraduate Student Handbook 23. Punishment. It is mandatory to comply with the timings and orders spelled out in these instructions and th...
-  [8] Source: pg_handbook.pdf (Page 17) | Score: 0.1107
+  [8] Source: pg_handbook.pdf (Page 17) | Score: 0.1080
       Snippet: NUST Postgraduate Student Handbook 14 The students are not allowed to accumulate more than two Ws at a particular time during their studies. e. Offeri...
-  [9] Source: ug_handbook.pdf (Page 70) | Score: 0.1037
+  [9] Source: ug_handbook.pdf (Page 70) | Score: 0.1013
       Snippet: 66 NUST Undergraduate Student Handbook 11. Other Academic Provisions. a. Registration of number of CHs per Semester. NUST offers flexibility to the st...
-  [10] Source: ug_handbook.pdf (Page 88) | Score: 0.1035
-      Snippet: 84 NUST Undergraduate Student Handbook activities / Excursion trips, etc. Any failing in this regard will lead to disciplinary action based upon the p...
+  [10] Source: pg_handbook.pdf (Page 15) | Score: 0.0997
+      Snippet: NUST Postgraduate Student Handbook 12 13. Unfair Means. Any student found using unfair means or assisting another student during a test/examination wi...
 
 >>> GENERATED LLM ANSWER (using LSH Context):
-  According to Excerpt 3 (Source: ug_handbook.pdf, Page: 53), a student can repeat a course in a Summer Semester. However, it does not specify the maximum number of times a course can be repeated.
+  According to Excerpt 3 (Source: ug_handbook.pdf, Page: 53), a student can repeat a course in a Summer Semester. However, there is no specific information on the maximum number of times a course can be repeated.
 
-Additionally, according to Excerpt 9 (Source: ug_handbook.pdf, Page: 70), a student can register for Additional Courses of interest subject to a maximum limit per semester. However, it does not specify the maximum number of times a course can be repeated.
+According to Excerpt 9 (Source: ug_handbook.pdf, Page: 70), a student can register for Additional Courses of interest subject to a maximum limit per semester. However, there is no specific information on the maximum number of times a course can be repeated.
 
-Therefore, I cannot find this information in the provided handbook excerpts.
+According to Excerpt 3 (Source: ug_handbook.pdf, Page: 53), a student can register for a maximum of two courses in a Summer Semester. However, there is no specific information on the maximum number of times a course can be repeated.
+
+I cannot find this information in the provided handbook excerpts.
 
 
 ==========================================

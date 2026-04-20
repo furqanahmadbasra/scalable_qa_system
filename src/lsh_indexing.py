@@ -16,9 +16,9 @@ MINHASH_FILE    = os.path.join(INDICES_DIR, "minhash_objects.pkl")
 SIMHASH_FILE    = os.path.join(INDICES_DIR, "simhash_fingerprints.pkl")
 SHINGLES_FILE   = os.path.join(INDICES_DIR, "chunk_shingles.pkl")
 
-# minhash params — 128 hash functions, threshold 0.1 (low because queries are short vs long chunks)
+# minhash params — 128 hash functions, threshold 0.01 (extremely low because short queries have tiny Jaccard against long chunks)
 NUM_PERM  = 128
-THRESHOLD = 0.1
+THRESHOLD = 0.01
 
 # simhash bit width
 SIMHASH_BITS = 64
@@ -38,11 +38,13 @@ def clean_tokens(text):
     return clean_string(text).split()
 
 
-def make_shingles(text, k=4):
-    """character-level n-grams (k=4) to catch sub-words like 'gpa' inside 'cgpa'"""
-    # pad so words at start/end get boundary tokens
-    padded = f" {text} "
-    return set(padded[i:i+k] for i in range(len(padded) - k + 1))
+def make_shingles(text):
+    """Word-level unigrams and bigrams to capture exact tokens and phrases."""
+    words = text.split()
+    shingles = set(words)  # Add all unigrams
+    for i in range(len(words) - 1):
+        shingles.add(f"{words[i]} {words[i+1]}")  # Add bigrams
+    return shingles
 
 
 def compute_minhash(shingles, num_perm=NUM_PERM):

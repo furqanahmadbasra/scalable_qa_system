@@ -1,5 +1,5 @@
 # Python
-__pycache__/
+**/__pycache__/
 *.py[cod]
 *$py.class
 *.so
@@ -27,20 +27,14 @@ ENV/
 .env
 
 # Project specific Data & Indices
-# Ignoring large generated files and original PDFs
-data/raw/*.pdf
-data/chunks/*.json
-data/chunks/*.csv
-data/indices/*.pkl
+data/**/*
 
-# You may want to keep the folders themselves, so we ignore only the contents above.
-# If you want to entirely ignore the folders, use:
-# data/
-# !data/.gitkeep
+But do NOT ignore the raw folder or its contents
+!data/raw/
+!data/raw/**
 
-# Experiment Results (can be large)
-# Un-comment if you want to ignore experiment outputs
-# experiments/results/
+# keep the folder structure of empty folders, 
+!**/ .gitkeep
 
 # OS specific files
 .DS_Store

@@ -37,7 +37,7 @@ if __name__ == "__main__":
         os.path.join("src", "data_ingestion.py"),
         os.path.join("src", "indexing.py"),
         os.path.join("src", "lsh_indexing.py"),
-        os.path.join("src", "evaluate_all.py")
+        os.path.join("src", "experiments.py")
     ]
     
     print(">>> Starting Scalable NUST QA Pipeline...\n")

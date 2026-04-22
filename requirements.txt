@@ -5,3 +5,4 @@ datasketch
 groq
 python-dotenv
 nltk
+plotly

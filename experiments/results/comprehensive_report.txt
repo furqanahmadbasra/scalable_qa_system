@@ -5,21 +5,21 @@
 Loaded 178 chunks for baseline testing.
 
 >>> 1. EXACT (TF-IDF) VS APPROXIMATE (LSH) RETRIEVAL
-  [TF-IDF] Build Time: 0.3207s | Memory: 0.75 MB | Avg Latency: 1.08 ms
-  [LSH]    Build Time: 1.3147s | Memory: 0.92 MB | Avg Latency: 2.75 ms
+  [TF-IDF] Build Time: 0.3170s | Memory: 0.75 MB | Avg Latency: 1.14 ms
+  [LSH]    Build Time: 1.3178s | Memory: 0.92 MB | Avg Latency: 3.10 ms
   [LSH]    Average Recall@10 (vs Exact Jaccard): 65.33%
 
 >>> 2. PARAMETER SENSITIVITY ANALYSIS
   A. Number of Hash Functions (MinHash):
-    Perms=32  | Indexing: 2.40s | Avg Latency: 0.77ms | Recall@10: 10.00%
-    Perms=64  | Indexing: 2.43s | Avg Latency: 1.70ms | Recall@10: 30.00%
-    Perms=128 | Indexing: 2.52s | Avg Latency: 2.45ms | Recall@10: 58.00%
-    Perms=256 | Indexing: 2.66s | Avg Latency: 3.41ms | Recall@10: 86.00%
+    Perms=32  | Indexing: 2.85s | Avg Latency: 0.83ms | Recall@10: 10.00%
+    Perms=64  | Indexing: 2.85s | Avg Latency: 1.56ms | Recall@10: 30.00%
+    Perms=128 | Indexing: 3.01s | Avg Latency: 3.38ms | Recall@10: 58.00%
+    Perms=256 | Indexing: 3.19s | Avg Latency: 3.55ms | Recall@10: 86.00%
 
   B. Jaccard Threshold (implicitly affects LSH Bands):
-    Threshold=0.01 -> (Bands=128, Rows=1) | LSH Query Latency: 0.95ms
-    Threshold=0.1  -> (Bands=64, Rows=2) | LSH Query Latency: 0.67ms
-    Threshold=0.5  -> (Bands=25, Rows=5) | LSH Query Latency: 0.63ms
+    Threshold=0.01 -> (Bands=128, Rows=1) | LSH Query Latency: 0.76ms
+    Threshold=0.1  -> (Bands=64, Rows=2) | LSH Query Latency: 0.77ms
+    Threshold=0.5  -> (Bands=25, Rows=5) | LSH Query Latency: 0.68ms
 
   C. Hamming Threshold (SimHash):
     Threshold=5  | Avg candidates retrieved: 100.0
@@ -28,9 +28,9 @@ Loaded 178 chunks for baseline testing.
 
 
 >>> 3. SCALABILITY TEST (Simulating Larger Datasets)
-  1x Corpus (178 chunks) | LSH Index Time: 0.87s | Query Latency: 0.68ms
-  2x Corpus (356 chunks) | LSH Index Time: 1.73s | Query Latency: 0.67ms
-  5x Corpus (890 chunks) | LSH Index Time: 4.51s | Query Latency: 0.76ms
+  1x Corpus (178 chunks) | LSH Index Time: 1.08s | Query Latency: 0.80ms
+  2x Corpus (356 chunks) | LSH Index Time: 2.16s | Query Latency: 0.89ms
+  5x Corpus (890 chunks) | LSH Index Time: 5.18s | Query Latency: 0.80ms
 
 
 >>> 4. QUALITATIVE EVALUATION (Answers for 15 Queries)
@@ -43,7 +43,7 @@ Loaded 178 chunks for baseline testing.
 [Query 2] What happens if a student fails a course?
   [LLM Answer] According to Excerpt 1, if a student fails a course, they will receive an F grade. Additionally, if a student fails a Major Field Course, they will not be promoted to the next semester (7th semester for Bachelor of Industrial Design and 9th semester for Bachelor of Architecture) as per Excerpt 2, point c.
 
-If a student fails a Minor subject, they will not be reflected in the student's transcript, but they will have to pass all four courses to be eligible for the Minor. If a student does not clear four courses, then the courses with pass grades will be reflected in the transcripts as Additional Courses (Excerpt 3, point 15).
+For non-credited courses, a student will receive an F/XF grade if their attendance falls below 75% (Excerpt 1, point 6).
   [Evidence] Source: ug_handbook.pdf (Pg 31) - Score: 0.1728
              "NUST Undergraduate Student Handbook 27 5. Academic Standards for Award of Degree. The Grade Point will be awarded based on the absolute grading system..."
 
@@ -87,11 +87,7 @@ It is also mentioned in Excerpt 1 that the University policy is to work out GPA 
 [Query 7] Can a student freeze a semester?
   [LLM Answer] According to Excerpt 3 (Source: ug_handbook.pdf, Page 42), a student may seek deferment from regular studies, which is referred to as "Deferment of Semester(s)". However, the term "freeze a semester" is not explicitly mentioned in the provided handbook excerpts.
 
-The closest related information is about deferment, which allows a student to repeat courses already studied on payment of the prescribed fee for repetition of courses, but not permitted to study new courses. 
-
-Therefore, I would say that the student can seek deferment, but the term "freeze a semester" is not explicitly mentioned in the provided handbook excerpts.
-
-(Excerpt 3, Page 42)
+The closest related information is about deferment, which allows a student to repeat courses already studied on payment of the prescribed fee for repetition of courses, but not permitted to study new courses.
   [Evidence] Source: ug_handbook.pdf (Pg 25) - Score: 0.1766
              "NUST Undergraduate Student Handbook 21 c. Compulsions. While on probation, a student shall: (1) contact concerned faculty for guidance; and, (2) keep ..."
 
@@ -100,26 +96,21 @@ Therefore, I would say that the student can seek deferment, but the term "freeze
 
 On recommendations of the FBS of the School, the University will award Master degree to the students who satisfy the following conditions:
 
-1. Award of Degree. On recommendations of the FBS of the School, the University will award Master degree to the students who satisfy the following conditions:
+- For 16 years education graduates with Economics and Business Administration background: 36 credit hours, 1-4 years duration.
+- For 16 years education graduates with a Psychology background: 38 credit hours, 1-4 years duration.
+- For 16 years education graduates with Mass Communication/Journalism/Media Studies/ Public Relations background: 30 credit hours, 1-4 years duration.
+- For 16 years education graduates with Master or Bachelors (Four Years) degree from any academic background: 30 credit hours, 2-4 years duration.
+- For 16 years education graduates in Engineering/ BBA /MBA/B.Com from HEC/ PEC affiliated institution: 36 credit hours, 1-4 years duration.
+- For 16 years education graduates with Master or Bachelor degree in relevant discipline: 36 credit hours, 2-4 years duration.
+- For 16 years education graduates (Engineering, IT, Management and Social Sciences): 36 credit hours, 1-4 years duration.
+- For 16 years education graduates with B. Arch degree from HEC recognized institute and accredited by PCATP: 43 credit hours, 1-4 years duration.
 
-a. Has been recommended by the respective institution.
-
-b. On re-admission, the student will pay the prescribed admission fee and 50% tuition fee for the period of absence. The rate of the fee will be as applicable to students of the semester which s/he joins.
-
-c. While considering the case for re-admission, it will be ascertained by the respective institution that the student has sufficient time to complete his/her degree within the prescribed time limit, which will start from the date of original/first admission.
-
-d. No special classes/courses will be planned / arranged for such cases, other than planned classes for repeat courses.
-
-e. After re-admission, his/her studies will be governed by the rules and regulations applicable to the entry s/he joins.
-
-f. Suspension of registration, on grounds of prolonged absence, will be granted only once in the programme in which s/he was originally granted admission.
-
-Therefore, the requirements for graduation are that the student must be recommended by the respective institution and meet the conditions for re-admission, if applicable.
+These requirements are specified in Excerpt 1, Chapter 4, Award of Master Degree in Business Administration/Executive Master in Business Administration/Social Sciences.
   [Evidence] Source: pg_handbook.pdf (Pg 25) - Score: 0.1193
              "NUST Postgraduate Student Handbook 22 CHAPTER 4: Award of Master Degree in Business Administration/Executive Master in Business Administration/Social ..."
 
 [Query 9] Is there a penalty for late fee submission?
-  [LLM Answer] I cannot find information about a penalty for late fee submission in the provided handbook excerpts.
+  [LLM Answer] I cannot find information about late fee submission penalties in the provided handbook excerpts.
   [Evidence] Source: ug_handbook.pdf (Pg 81) - Score: 0.107
              "NUST Undergraduate Student Handbook 77 Chapter 11: NUST Code of Conduct General 1. NUST is a leading research-intensive university in Pakistan compara..."
 
@@ -131,11 +122,7 @@ Therefore, the requirements for graduation are that the student must be recommen
 [Query 11] How to apply for a hostel?
   [LLM Answer] To apply for a hostel, you need to follow the steps mentioned in Excerpt 2, specifically under the heading "Temporary Students" (Page 97 of ug_handbook.pdf). 
 
-According to Excerpt 2, an application form is available at the hostel's office, which requires the signature of parents/guardians. 
-
-Additionally, for hostelite students, it is mandatory to apply for messing, which is arranged by NUST. The application process for messing is also mentioned in Excerpt 2 under the heading "Messing" (Page 97 of ug_handbook.pdf).
-
-Please note that the hostel charges and other related information are also mentioned in Excerpt 2 under the heading "Hostel Dues" (Page 97 of ug_handbook.pdf).
+According to Excerpt 2, an application form is available at the hostel's office, which requires the signature of parents/guardians.
   [Evidence] Source: ug_handbook.pdf (Pg 82) - Score: 0.1398
              "78 NUST Undergraduate Student Handbook a. Cheating. Intentionally using or attempting to use unauthorized materials, information, or study aids in any..."
 

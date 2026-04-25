@@ -21,6 +21,7 @@ stemmer = PorterStemmer()
 FUSED_DEFAULT_TFIDF_WEIGHT = 0.50
 FUSED_DEFAULT_HYBRID_WEIGHT = 0.50
 FUSED_DEFAULT_INTENT_WEIGHT = 0.10
+FUSED_DEFAULT_PAGERANK_WEIGHT = 0.15
 FUSED_DEFAULT_CANDIDATE_POOL = 50
 SIMHASH_DEFAULT_THRESHOLD = 12
 INTENT_KEYWORDS = {
@@ -217,6 +218,8 @@ def fused_search(
     tfidf_weight=FUSED_DEFAULT_TFIDF_WEIGHT,
     hybrid_weight=FUSED_DEFAULT_HYBRID_WEIGHT,
     intent_weight=FUSED_DEFAULT_INTENT_WEIGHT,
+    pagerank_scores=None,
+    pagerank_weight=FUSED_DEFAULT_PAGERANK_WEIGHT,
 ):
     """
     Candidate generation with LSH-hybrid, then rerank those candidates using TF-IDF cosine.
@@ -249,6 +252,10 @@ def fused_search(
     chunk_map = {c["chunk_id"]: c for c in chunks}
     q_tokens = clean_tokens(query)
     query_intents = detect_query_intents(q_tokens)
+    if pagerank_scores:
+        max_pr = max(float(pagerank_scores.get(cid, 0.0)) for cid in candidate_ids) or 1e-9
+    else:
+        max_pr = 1.0
     for cid in candidate_ids:
         tfidf_score = float(sim_all[cid]) / max_sim
         hybrid_score = float(cid_to_hybrid.get(cid, 0.0))
@@ -267,11 +274,16 @@ def fused_search(
             + (hybrid_weight * hybrid_score)
             + (intent_weight * intent_score)
         )
-        ranked.append((cid, fused_score, tfidf_score, hybrid_score, intent_score))
+        pagerank_score = 0.0
+        if pagerank_scores:
+            pagerank_score = float(pagerank_scores.get(cid, 0.0)) / max_pr
+            fused_score = ((1.0 - pagerank_weight) * fused_score) + (pagerank_weight * pagerank_score)
+
+        ranked.append((cid, fused_score, tfidf_score, hybrid_score, intent_score, pagerank_score))
 
     ranked.sort(key=lambda x: -x[1])
     results = []
-    for cid, fused_score, tfidf_score, hybrid_score, intent_score in ranked[:top_k]:
+    for cid, fused_score, tfidf_score, hybrid_score, intent_score, pagerank_score in ranked[:top_k]:
         c = chunk_map[cid]
         results.append({
             "chunk_id": cid,
@@ -283,6 +295,7 @@ def fused_search(
             "tfidf_score": round(tfidf_score, 4),
             "hybrid_score": round(hybrid_score, 4),
             "intent_score": round(intent_score, 4),
+            "pagerank_score": round(pagerank_score, 4),
         })
     return results
 

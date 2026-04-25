@@ -35,6 +35,7 @@ from extensions.frequent_patterns import (
     write_itemsets_text_report,
     write_query_log_csv,
 )
+from extensions.pagerank_ranker import build_pagerank_scores
 
 CHUNKS_FILE = os.path.join(os.path.dirname(__file__), "..", "data", "chunks", "chunks.json")
 RESULTS_DIR = os.path.join(os.path.dirname(__file__), "..", "experiments", "results")
@@ -44,6 +45,7 @@ PER_QUERY_METRICS_FILE = os.path.join(RESULTS_DIR, "per_query_metrics.csv")
 QUERY_LOG_FILE = os.path.join(RESULTS_DIR, "query_log.csv")
 FREQ_ITEMSETS_CSV = os.path.join(RESULTS_DIR, "frequent_itemsets_report.csv")
 FREQ_ITEMSETS_TXT = os.path.join(RESULTS_DIR, "frequent_itemsets_report.txt")
+PAGERANK_SCORES_FILE = os.path.join(RESULTS_DIR, "pagerank_scores.csv")
 
 # 15 Sample Queries for robust evaluation
 TEST_QUERIES = [
@@ -64,6 +66,7 @@ TEST_QUERIES = [
     "How is a student placed on academic probation?"
 ]
 FUSION_WEIGHT_CANDIDATES = [0.5, 0.6, 0.7]
+PAGERANK_WEIGHT_CANDIDATES = [0.0, 0.1, 0.15, 0.2]
 WEAK_QUERY_INDICES = [3, 9, 12]  # Query numbers 4, 10, 13 (0-based)
 METRIC_KS = [3, 5, 10]
 PRESERVED_POLICY_WORDS = {"not", "no", "nor", "must", "shall", "may"}
@@ -172,6 +175,14 @@ def run_experiments():
         lsh_build_time = time.time() - start_time
         lsh_memory = get_memory_footprint(lsh_index) + get_memory_footprint(minhash_objs) + get_memory_footprint(simhash_fps)
 
+        # Build PageRank scores over handbook section graph
+        pagerank_scores = build_pagerank_scores(base_chunks)
+        with open(PAGERANK_SCORES_FILE, "w", newline="", encoding="utf-8") as f_pr:
+            writer = csv.DictWriter(f_pr, fieldnames=["chunk_id", "pagerank_score"])
+            writer.writeheader()
+            for cid, score in sorted(pagerank_scores.items(), key=lambda x: -x[1]):
+                writer.writerow({"chunk_id": cid, "pagerank_score": round(score, 8)})
+
         # ---------------------------------------------------------------------
         # 1B. FUSION WEIGHT TUNING (target weak queries without hurting overall)
         # ---------------------------------------------------------------------
@@ -229,14 +240,65 @@ def run_experiments():
             report,
         )
 
+        # ---------------------------------------------------------------------
+        # 1D. PAGERANK WEIGHT TUNING
+        # ---------------------------------------------------------------------
+        best_pr_weight = 0.15
+        best_pr_score = -1.0
+        pr_tuning_rows = []
+        for pr_w in PAGERANK_WEIGHT_CANDIDATES:
+            all_recalls = []
+            weak_recalls = []
+            for qi, q in enumerate(TEST_QUERIES):
+                gt = get_exact_jaccard_ground_truth(q, base_chunks, top_k=10)
+                ranked = fused_search(
+                    q,
+                    lsh_index,
+                    minhash_objs,
+                    simhash_fps,
+                    chunk_shingles,
+                    chunk_tokens,
+                    base_chunks,
+                    vectorizer,
+                    tfidf_matrix,
+                    top_k=10,
+                    candidate_pool=FUSED_DEFAULT_CANDIDATE_POOL,
+                    tfidf_weight=best_tfidf_weight,
+                    hybrid_weight=best_hybrid_weight,
+                    pagerank_scores=pagerank_scores,
+                    pagerank_weight=pr_w,
+                )
+                ids = [r["chunk_id"] for r in ranked]
+                recall = len(set(ids) & set(gt)) / 10.0 if gt else 0.0
+                all_recalls.append(recall)
+                if qi in WEAK_QUERY_INDICES:
+                    weak_recalls.append(recall)
+            avg_all = float(np.mean(all_recalls))
+            avg_weak = float(np.mean(weak_recalls)) if weak_recalls else 0.0
+            combined = (0.65 * avg_all) + (0.35 * avg_weak)
+            pr_tuning_rows.append((pr_w, avg_all, avg_weak, combined))
+            if combined > best_pr_score:
+                best_pr_score = combined
+                best_pr_weight = pr_w
+
+        log_print(">>> 1D. PAGERANK WEIGHT TUNING", report)
+        for pr_w, avg_all, avg_weak, combined in pr_tuning_rows:
+            log_print(
+                f"  PageRankWeight={pr_w:.2f} | Avg Recall@10={avg_all:.2%} | "
+                f"Weak(4/10/13) Recall@10={avg_weak:.2%} | Combined={combined:.4f}",
+                report,
+            )
+        log_print(f"  Selected PageRank Weight -> {best_pr_weight:.2f}\n", report)
+
         # Query Latency, Recall and Precision Testing
-        tfidf_latencies, lsh_latencies, hybrid_latencies, fused_latencies = [], [], [], []
-        lsh_recalls, hybrid_recalls, fused_recalls = [], [], []
+        tfidf_latencies, lsh_latencies, hybrid_latencies, fused_latencies, fused_pr_latencies = [], [], [], [], []
+        lsh_recalls, hybrid_recalls, fused_recalls, fused_pr_recalls = [], [], [], []
         metric_summary = {
             "tfidf": {k: {"p": [], "r": []} for k in METRIC_KS},
             "minhash": {k: {"p": [], "r": []} for k in METRIC_KS},
             "hybrid": {k: {"p": [], "r": []} for k in METRIC_KS},
             "fused": {k: {"p": [], "r": []} for k in METRIC_KS},
+            "fused_pagerank": {k: {"p": [], "r": []} for k in METRIC_KS},
         }
         per_query_rows = []
         
@@ -286,6 +348,29 @@ def run_experiments():
             fused_intersection = len(set(ground_truth) & set(fused_ids))
             fused_recalls.append(fused_intersection / 10.0 if ground_truth else 0)
 
+            t0 = time.perf_counter()
+            fused_pr_results = fused_search(
+                q,
+                lsh_index,
+                minhash_objs,
+                simhash_fps,
+                chunk_shingles,
+                chunk_tokens,
+                base_chunks,
+                vectorizer,
+                tfidf_matrix,
+                top_k=10,
+                candidate_pool=FUSED_DEFAULT_CANDIDATE_POOL,
+                tfidf_weight=best_tfidf_weight,
+                hybrid_weight=best_hybrid_weight,
+                pagerank_scores=pagerank_scores,
+                pagerank_weight=best_pr_weight,
+            )
+            fused_pr_latencies.append(time.perf_counter() - t0)
+            fused_pr_ids = [r["chunk_id"] for r in fused_pr_results]
+            fused_pr_intersection = len(set(ground_truth) & set(fused_pr_ids))
+            fused_pr_recalls.append(fused_pr_intersection / 10.0 if ground_truth else 0)
+
             tfidf_scores = cosine_similarity(
                 vectorizer.transform([preprocess_and_stem(q)]), tfidf_matrix
             ).flatten()
@@ -308,7 +393,11 @@ def run_experiments():
                 metric_summary["fused"][k]["p"].append(p)
                 metric_summary["fused"][k]["r"].append(r)
 
-            top_fused = fused_results[0] if fused_results else None
+                p, r = compute_precision_recall(fused_pr_ids, ground_truth, k)
+                metric_summary["fused_pagerank"][k]["p"].append(p)
+                metric_summary["fused_pagerank"][k]["r"].append(r)
+
+            top_fused = fused_pr_results[0] if fused_pr_results else None
             row = {
                 "query": q,
                 "top_source": top_fused["source"] if top_fused else "n/a",
@@ -329,11 +418,13 @@ def run_experiments():
         log_print(f"  [LSH-MinHash] Average Recall@10 (vs Exact Jaccard): {np.mean(lsh_recalls):.2%}", report)
         log_print(f"  [LSH-Hybrid]  Average Recall@10 (vs Exact Jaccard): {np.mean(hybrid_recalls):.2%}", report)
         log_print(f"  [LSH-Fused]   Average Recall@10 (vs Exact Jaccard): {np.mean(fused_recalls):.2%}", report)
+        log_print(f"  [LSH-Fused+PageRank] Average Recall@10 (vs Exact Jaccard): {np.mean(fused_pr_recalls):.2%}", report)
         log_print(f"  [LSH-Hybrid]  Avg Latency: {np.mean(hybrid_latencies)*1000:.2f} ms", report)
-        log_print(f"  [LSH-Fused]   Avg Latency: {np.mean(fused_latencies)*1000:.2f} ms\n", report)
+        log_print(f"  [LSH-Fused]   Avg Latency: {np.mean(fused_latencies)*1000:.2f} ms", report)
+        log_print(f"  [LSH-Fused+PageRank] Avg Latency: {np.mean(fused_pr_latencies)*1000:.2f} ms\n", report)
 
         log_print(">>> 1C. PRECISION/RECALL@K SUMMARY (mean +/- std)", report)
-        for method in ["tfidf", "minhash", "hybrid", "fused"]:
+        for method in ["tfidf", "minhash", "hybrid", "fused", "fused_pagerank"]:
             label = method.upper()
             for k in METRIC_KS:
                 p_vals = metric_summary[method][k]["p"]
@@ -602,7 +693,8 @@ def run_experiments():
             )
         log_print(f"  Saved query log: {QUERY_LOG_FILE}", report)
         log_print(f"  Saved itemsets CSV: {FREQ_ITEMSETS_CSV}", report)
-        log_print(f"  Saved itemsets report: {FREQ_ITEMSETS_TXT}\n", report)
+        log_print(f"  Saved itemsets report: {FREQ_ITEMSETS_TXT}", report)
+        log_print(f"  Saved PageRank chunk scores: {PAGERANK_SCORES_FILE}\n", report)
 
         # ---------------------------------------------------------------------
         # 5. QUALITATIVE EVALUATION
@@ -625,6 +717,8 @@ def run_experiments():
                 candidate_pool=FUSED_DEFAULT_CANDIDATE_POOL,
                 tfidf_weight=best_tfidf_weight,
                 hybrid_weight=best_hybrid_weight,
+                pagerank_scores=pagerank_scores,
+                pagerank_weight=best_pr_weight,
             )
             
             if os.environ.get("GROQ_API_KEY"):
@@ -645,7 +739,32 @@ def run_experiments():
             "minhash_latency_ms",
             "hybrid_latency_ms",
             "fused_latency_ms",
-        ] + [f"fused_p@{k}" for k in METRIC_KS] + [f"fused_r@{k}" for k in METRIC_KS]
+        ] + [f"fused_p@{k}" for k in METRIC_KS] + [f"fused_r@{k}" for k in METRIC_KS] + [f"fused_pr_p@{k}" for k in METRIC_KS] + [f"fused_pr_r@{k}" for k in METRIC_KS]
+        for row in per_query_rows:
+            q = row["query"]
+            gt = get_exact_jaccard_ground_truth(q, base_chunks, top_k=10)
+            fused_pr_results = fused_search(
+                q,
+                lsh_index,
+                minhash_objs,
+                simhash_fps,
+                chunk_shingles,
+                chunk_tokens,
+                base_chunks,
+                vectorizer,
+                tfidf_matrix,
+                top_k=10,
+                candidate_pool=FUSED_DEFAULT_CANDIDATE_POOL,
+                tfidf_weight=best_tfidf_weight,
+                hybrid_weight=best_hybrid_weight,
+                pagerank_scores=pagerank_scores,
+                pagerank_weight=best_pr_weight,
+            )
+            fused_pr_ids = [r["chunk_id"] for r in fused_pr_results]
+            for k in METRIC_KS:
+                p, r = compute_precision_recall(fused_pr_ids, gt, k)
+                row[f"fused_pr_p@{k}"] = round(p, 4)
+                row[f"fused_pr_r@{k}"] = round(r, 4)
         with open(PER_QUERY_METRICS_FILE, "w", newline="", encoding="utf-8") as f_csv:
             writer = csv.DictWriter(f_csv, fieldnames=fieldnames)
             writer.writeheader()
@@ -654,6 +773,7 @@ def run_experiments():
     print(f"\n[SUCCESS] Comprehensive experiments completed! Check {REPORT_FILE}")
     print(f"[SUCCESS] Per-query metrics table written to {PER_QUERY_METRICS_FILE}")
     print(f"[SUCCESS] Frequent itemset reports written to {FREQ_ITEMSETS_CSV} and {FREQ_ITEMSETS_TXT}")
+    print(f"[SUCCESS] PageRank chunk scores written to {PAGERANK_SCORES_FILE}")
 
 if __name__ == "__main__":
     run_experiments()

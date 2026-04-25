@@ -1,0 +1,17 @@
+SON FREQUENT ITEMSETS REPORT
+===========================
+
+k=1 itemsets
+--------------------------------
+intent:general_policy :: support_count=5, support_ratio=0.33
+cours :: support_count=3, support_ratio=0.20
+polici :: support_count=3, support_ratio=0.20
+student :: support_count=3, support_ratio=0.20
+intent:graduation :: support_count=2, support_ratio=0.13
+requir :: support_count=2, support_ratio=0.13
+
+k=2 itemsets
+--------------------------------
+cours | intent:general_policy :: support_count=2, support_ratio=0.13
+intent:general_policy | student :: support_count=2, support_ratio=0.13
+

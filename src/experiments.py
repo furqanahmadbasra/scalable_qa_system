@@ -36,6 +36,7 @@ from extensions.frequent_patterns import (
     write_query_log_csv,
 )
 from extensions.pagerank_ranker import build_pagerank_scores
+from extensions.distributed_sim import simulate_distributed_lsh, son_frequent_itemsets
 
 CHUNKS_FILE = os.path.join(os.path.dirname(__file__), "..", "data", "chunks", "chunks.json")
 RESULTS_DIR = os.path.join(os.path.dirname(__file__), "..", "experiments", "results")
@@ -46,6 +47,10 @@ QUERY_LOG_FILE = os.path.join(RESULTS_DIR, "query_log.csv")
 FREQ_ITEMSETS_CSV = os.path.join(RESULTS_DIR, "frequent_itemsets_report.csv")
 FREQ_ITEMSETS_TXT = os.path.join(RESULTS_DIR, "frequent_itemsets_report.txt")
 PAGERANK_SCORES_FILE = os.path.join(RESULTS_DIR, "pagerank_scores.csv")
+DISTRIBUTED_SCALING_CSV = os.path.join(RESULTS_DIR, "distributed_scaling_report.csv")
+DISTRIBUTED_SCALING_TXT = os.path.join(RESULTS_DIR, "distributed_scaling_report.txt")
+SON_ITEMSETS_CSV = os.path.join(RESULTS_DIR, "son_itemsets_report.csv")
+SON_ITEMSETS_TXT = os.path.join(RESULTS_DIR, "son_itemsets_report.txt")
 
 # 15 Sample Queries for robust evaluation
 TEST_QUERIES = [
@@ -133,6 +138,77 @@ def make_char_shingles_from_tokens(tokens, k):
     if len(text) < k:
         return {text} if text else set()
     return {text[i:i+k] for i in range(len(text) - k + 1)}
+
+
+def write_distributed_scaling_reports(rows):
+    with open(DISTRIBUTED_SCALING_CSV, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "multiplier",
+                "chunks",
+                "shards",
+                "index_time_s",
+                "avg_query_latency_ms",
+                "avg_topk_size",
+            ],
+        )
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(
+                {
+                    "multiplier": row["multiplier"],
+                    "chunks": row["chunks"],
+                    "shards": row["shards"],
+                    "index_time_s": round(row["index_time_s"], 4),
+                    "avg_query_latency_ms": round(row["avg_query_latency_ms"], 4),
+                    "avg_topk_size": round(row["avg_topk_size"], 2),
+                }
+            )
+
+    with open(DISTRIBUTED_SCALING_TXT, "w", encoding="utf-8") as f:
+        f.write("MAPREDUCE-STYLE DISTRIBUTED LSH REPORT\n")
+        f.write("=====================================\n\n")
+        for row in rows:
+            f.write(
+                f"{row['multiplier']}x ({row['chunks']} chunks, {row['shards']} shards) "
+                f"| index={row['index_time_s']:.2f}s | latency={row['avg_query_latency_ms']:.2f}ms "
+                f"| avg_topk={row['avg_topk_size']:.2f}\n"
+            )
+
+
+def write_son_itemsets_reports(itemsets):
+    with open(SON_ITEMSETS_CSV, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=["k", "itemset", "support_count", "support_ratio"],
+        )
+        writer.writeheader()
+        for k in sorted(itemsets.keys()):
+            for items, support_count, support_ratio in itemsets[k]:
+                writer.writerow(
+                    {
+                        "k": k,
+                        "itemset": " | ".join(items),
+                        "support_count": support_count,
+                        "support_ratio": round(support_ratio, 4),
+                    }
+                )
+
+    with open(SON_ITEMSETS_TXT, "w", encoding="utf-8") as f:
+        f.write("SON FREQUENT ITEMSETS REPORT\n")
+        f.write("===========================\n\n")
+        if not itemsets:
+            f.write("No SON frequent itemsets discovered.\n")
+            return
+        for k in sorted(itemsets.keys()):
+            f.write(f"k={k} itemsets\n")
+            f.write("-" * 32 + "\n")
+            for items, support_count, support_ratio in itemsets[k]:
+                f.write(
+                    f"{' | '.join(items)} :: support_count={support_count}, support_ratio={support_ratio:.2f}\n"
+                )
+            f.write("\n")
 
 def run_experiments():
     with open(REPORT_FILE, "w", encoding="utf-8") as report:
@@ -697,9 +773,50 @@ def run_experiments():
         log_print(f"  Saved PageRank chunk scores: {PAGERANK_SCORES_FILE}\n", report)
 
         # ---------------------------------------------------------------------
-        # 5. QUALITATIVE EVALUATION
+        # 5. MAPREDUCE / SON DISTRIBUTED SIMULATION
         # ---------------------------------------------------------------------
-        log_print(">>> 5. QUALITATIVE EVALUATION (Answers for 15 Queries)", report)
+        log_print(">>> 5. MAPREDUCE/SON DISTRIBUTED SIMULATION", report)
+        distributed_rows = simulate_distributed_lsh(
+            base_chunks=base_chunks,
+            test_queries=TEST_QUERIES[:5],
+            multipliers=[1, 2, 5, 10, 20],
+            shard_count=4,
+            threshold=0.2,
+            num_perm=128,
+        )
+        write_distributed_scaling_reports(distributed_rows)
+        for row in distributed_rows:
+            log_print(
+                f"  {row['multiplier']}x corpus ({row['chunks']} chunks, {row['shards']} shards) | "
+                f"Map index: {row['index_time_s']:.2f}s | Reduce latency: {row['avg_query_latency_ms']:.2f}ms | "
+                f"Avg top-k size: {row['avg_topk_size']:.2f}",
+                report,
+            )
+
+        son_itemsets = son_frequent_itemsets(
+            transactions=transactions,
+            global_min_support_count=2,
+            max_k=3,
+            shard_count=4,
+        )
+        write_son_itemsets_reports(son_itemsets)
+        for k in sorted(son_itemsets.keys()):
+            log_print(f"  SON frequent itemsets k={k}: {len(son_itemsets[k])}", report)
+        if son_itemsets.get(2):
+            top_son = son_itemsets[2][0]
+            log_print(
+                f"  SON top pair: {' | '.join(top_son[0])} (support={top_son[1]})",
+                report,
+            )
+        log_print(f"  Saved distributed scaling CSV: {DISTRIBUTED_SCALING_CSV}", report)
+        log_print(f"  Saved distributed scaling report: {DISTRIBUTED_SCALING_TXT}", report)
+        log_print(f"  Saved SON itemsets CSV: {SON_ITEMSETS_CSV}", report)
+        log_print(f"  Saved SON itemsets report: {SON_ITEMSETS_TXT}\n", report)
+
+        # ---------------------------------------------------------------------
+        # 6. QUALITATIVE EVALUATION
+        # ---------------------------------------------------------------------
+        log_print(">>> 6. QUALITATIVE EVALUATION (Answers for 15 Queries)", report)
         
         for idx, q in enumerate(TEST_QUERIES, 1):
             log_print(f"\n[Query {idx}] {q}", report)
@@ -774,6 +891,8 @@ def run_experiments():
     print(f"[SUCCESS] Per-query metrics table written to {PER_QUERY_METRICS_FILE}")
     print(f"[SUCCESS] Frequent itemset reports written to {FREQ_ITEMSETS_CSV} and {FREQ_ITEMSETS_TXT}")
     print(f"[SUCCESS] PageRank chunk scores written to {PAGERANK_SCORES_FILE}")
+    print(f"[SUCCESS] Distributed scaling reports written to {DISTRIBUTED_SCALING_CSV} and {DISTRIBUTED_SCALING_TXT}")
+    print(f"[SUCCESS] SON reports written to {SON_ITEMSETS_CSV} and {SON_ITEMSETS_TXT}")
 
 if __name__ == "__main__":
     run_experiments()

@@ -1,0 +1,9 @@
+k,itemset,support_count,support_ratio
+1,intent:general_policy,5,0.3333
+1,cours,3,0.2
+1,polici,3,0.2
+1,student,3,0.2
+1,intent:graduation,2,0.1333
+1,requir,2,0.1333
+2,cours | intent:general_policy,2,0.1333
+2,intent:general_policy | student,2,0.1333

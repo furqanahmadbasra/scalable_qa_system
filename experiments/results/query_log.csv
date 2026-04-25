@@ -1,0 +1,16 @@
+query_id,query_text,timestamp,normalized_tokens,intent_tags
+1,What is the minimum GPA requirement?,2026-04-25T00:01:00Z,minimum|gpa|requir,general_policy
+2,What happens if a student fails a course?,2026-04-25T00:02:00Z,happen|student|fail|cours,general_policy
+3,What is the attendance policy?,2026-04-25T00:03:00Z,attend|polici,attendance
+4,How many times can a course be repeated?,2026-04-25T00:04:00Z,time|cours|repeat,repeat_course
+5,What is the policy on plagiarism?,2026-04-25T00:05:00Z,polici|plagiar,plagiarism
+6,How are final grades calculated?,2026-04-25T00:06:00Z,final|grade|calcul,general_policy
+7,Can a student freeze a semester?,2026-04-25T00:07:00Z,student|freez|semest,general_policy
+8,What are the requirements for graduation?,2026-04-25T00:08:00Z,requir|graduat,graduation
+9,Is there a penalty for late fee submission?,2026-04-25T00:09:00Z,penalti|late|fee|submiss,fees
+10,What is the maximum credit hour limit?,2026-04-25T00:10:00Z,maximum|credit|hour|limit,graduation
+11,How to apply for a hostel?,2026-04-25T00:11:00Z,appli|hostel,hostel
+12,What is the policy for dropping a course?,2026-04-25T00:12:00Z,polici|drop|cours,general_policy
+13,Who is eligible for a gold medal?,2026-04-25T00:13:00Z,elig|gold|medal,medals
+14,What are the rules for exam re-checking?,2026-04-25T00:14:00Z,rule|exam|check|recheck,rechecking
+15,How is a student placed on academic probation?,2026-04-25T00:15:00Z,student|place|academ|probat,probation

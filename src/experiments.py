@@ -3,10 +3,14 @@ import sys
 import time
 import json
 import pickle
+import csv
+import re
 import numpy as np
 from datasketch import MinHash, MinHashLSH
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
 from sklearn.metrics.pairwise import cosine_similarity
+from nltk.stem import PorterStemmer
 
 # Import from existing modules
 from indexing import preprocess_and_stem
@@ -23,11 +27,23 @@ from lsh_retrieval import (
     FUSED_DEFAULT_TFIDF_WEIGHT,
 )
 from answer_generation import generate_answer
+from extensions.frequent_patterns import (
+    apriori_frequent_itemsets,
+    build_query_log_records,
+    build_transactions,
+    write_itemsets_csv,
+    write_itemsets_text_report,
+    write_query_log_csv,
+)
 
 CHUNKS_FILE = os.path.join(os.path.dirname(__file__), "..", "data", "chunks", "chunks.json")
 RESULTS_DIR = os.path.join(os.path.dirname(__file__), "..", "experiments", "results")
 os.makedirs(RESULTS_DIR, exist_ok=True)
 REPORT_FILE = os.path.join(RESULTS_DIR, "comprehensive_report.txt")
+PER_QUERY_METRICS_FILE = os.path.join(RESULTS_DIR, "per_query_metrics.csv")
+QUERY_LOG_FILE = os.path.join(RESULTS_DIR, "query_log.csv")
+FREQ_ITEMSETS_CSV = os.path.join(RESULTS_DIR, "frequent_itemsets_report.csv")
+FREQ_ITEMSETS_TXT = os.path.join(RESULTS_DIR, "frequent_itemsets_report.txt")
 
 # 15 Sample Queries for robust evaluation
 TEST_QUERIES = [
@@ -49,6 +65,10 @@ TEST_QUERIES = [
 ]
 FUSION_WEIGHT_CANDIDATES = [0.5, 0.6, 0.7]
 WEAK_QUERY_INDICES = [3, 9, 12]  # Query numbers 4, 10, 13 (0-based)
+METRIC_KS = [3, 5, 10]
+PRESERVED_POLICY_WORDS = {"not", "no", "nor", "must", "shall", "may"}
+EXPERIMENT_STOPWORDS = ENGLISH_STOP_WORDS - PRESERVED_POLICY_WORDS
+stemmer = PorterStemmer()
 
 def log_print(msg, f):
     """Prints to console and writes to log file."""
@@ -68,6 +88,48 @@ def get_exact_jaccard_ground_truth(query, chunks, top_k=10):
         scores.append((c['chunk_id'], jaccard(q_shingles, c_shingles)))
     scores.sort(key=lambda x: -x[1])
     return [cid for cid, score in scores[:top_k]]
+
+
+def compute_precision_recall(retrieved_ids, ground_truth_ids, k):
+    truth = set(ground_truth_ids[:k])
+    pred = set(retrieved_ids[:k])
+    if not pred:
+        return 0.0, 0.0
+    inter = len(pred & truth)
+    precision = inter / float(k)
+    recall = inter / float(len(truth) if truth else 1)
+    return precision, recall
+
+
+def clean_tokens_variant(text, remove_stopwords=True):
+    text = text.lower().replace("_", " ")
+    text = re.sub(r"[^a-z0-9\-\s]", " ", text)
+    normalized = []
+    for token in text.split():
+        if "-" in token:
+            parts = [p for p in token.split("-") if p]
+            if not parts:
+                continue
+            normalized.extend(parts)
+            normalized.append("".join(parts))
+        else:
+            normalized.append(token)
+
+    final_tokens = []
+    for token in normalized:
+        if len(token) <= 1:
+            continue
+        if remove_stopwords and token in EXPERIMENT_STOPWORDS:
+            continue
+        final_tokens.append(stemmer.stem(token))
+    return final_tokens
+
+
+def make_char_shingles_from_tokens(tokens, k):
+    text = " ".join(tokens)
+    if len(text) < k:
+        return {text} if text else set()
+    return {text[i:i+k] for i in range(len(text) - k + 1)}
 
 def run_experiments():
     with open(REPORT_FILE, "w", encoding="utf-8") as report:
@@ -167,8 +229,16 @@ def run_experiments():
             report,
         )
 
-        # Query Latency & Recall Testing
-        tfidf_latencies, lsh_latencies, lsh_recalls, hybrid_recalls, fused_recalls = [], [], [], [], []
+        # Query Latency, Recall and Precision Testing
+        tfidf_latencies, lsh_latencies, hybrid_latencies, fused_latencies = [], [], [], []
+        lsh_recalls, hybrid_recalls, fused_recalls = [], [], []
+        metric_summary = {
+            "tfidf": {k: {"p": [], "r": []} for k in METRIC_KS},
+            "minhash": {k: {"p": [], "r": []} for k in METRIC_KS},
+            "hybrid": {k: {"p": [], "r": []} for k in METRIC_KS},
+            "fused": {k: {"p": [], "r": []} for k in METRIC_KS},
+        }
+        per_query_rows = []
         
         for q in TEST_QUERIES:
             # TF-IDF Latency
@@ -177,23 +247,25 @@ def run_experiments():
             _ = cosine_similarity(q_vec, tfidf_matrix).flatten()
             tfidf_latencies.append(time.perf_counter() - t0)
 
-            # LSH Latency
+            # MinHash LSH Latency
             t0 = time.perf_counter()
-            _ = hybrid_search(q, lsh_index, minhash_objs, simhash_fps, chunk_shingles, chunk_tokens, base_chunks, top_k=10)
+            _ = search_minhash(q, lsh_index, minhash_objs, chunk_shingles, base_chunks, top_k=10)
             lsh_latencies.append(time.perf_counter() - t0)
 
-            # Accuracy (Recall@10 against Exact Jaccard)
             ground_truth = get_exact_jaccard_ground_truth(q, base_chunks, top_k=10)
             lsh_results = search_minhash(q, lsh_index, minhash_objs, chunk_shingles, base_chunks, top_k=10)
             lsh_retrieved_ids = [r['chunk_id'] for r in lsh_results]
             intersection = len(set(ground_truth) & set(lsh_retrieved_ids))
             lsh_recalls.append(intersection / 10.0 if ground_truth else 0)
 
+            t0 = time.perf_counter()
             hybrid_results = hybrid_search(q, lsh_index, minhash_objs, simhash_fps, chunk_shingles, chunk_tokens, base_chunks, top_k=10)
+            hybrid_latencies.append(time.perf_counter() - t0)
             hybrid_retrieved_ids = [r["chunk_id"] for r in hybrid_results]
             hybrid_intersection = len(set(ground_truth) & set(hybrid_retrieved_ids))
             hybrid_recalls.append(hybrid_intersection / 10.0 if ground_truth else 0)
 
+            t0 = time.perf_counter()
             fused_results = fused_search(
                 q,
                 lsh_index,
@@ -209,15 +281,69 @@ def run_experiments():
                 tfidf_weight=best_tfidf_weight,
                 hybrid_weight=best_hybrid_weight,
             )
+            fused_latencies.append(time.perf_counter() - t0)
             fused_ids = [r["chunk_id"] for r in fused_results]
             fused_intersection = len(set(ground_truth) & set(fused_ids))
             fused_recalls.append(fused_intersection / 10.0 if ground_truth else 0)
 
+            tfidf_scores = cosine_similarity(
+                vectorizer.transform([preprocess_and_stem(q)]), tfidf_matrix
+            ).flatten()
+            tfidf_ids = list(np.argsort(tfidf_scores)[::-1][:10])
+
+            for k in METRIC_KS:
+                p, r = compute_precision_recall(tfidf_ids, ground_truth, k)
+                metric_summary["tfidf"][k]["p"].append(p)
+                metric_summary["tfidf"][k]["r"].append(r)
+
+                p, r = compute_precision_recall(lsh_retrieved_ids, ground_truth, k)
+                metric_summary["minhash"][k]["p"].append(p)
+                metric_summary["minhash"][k]["r"].append(r)
+
+                p, r = compute_precision_recall(hybrid_retrieved_ids, ground_truth, k)
+                metric_summary["hybrid"][k]["p"].append(p)
+                metric_summary["hybrid"][k]["r"].append(r)
+
+                p, r = compute_precision_recall(fused_ids, ground_truth, k)
+                metric_summary["fused"][k]["p"].append(p)
+                metric_summary["fused"][k]["r"].append(r)
+
+            top_fused = fused_results[0] if fused_results else None
+            row = {
+                "query": q,
+                "top_source": top_fused["source"] if top_fused else "n/a",
+                "top_page": top_fused["page"] if top_fused else -1,
+                "tfidf_latency_ms": round(tfidf_latencies[-1] * 1000, 3),
+                "minhash_latency_ms": round(lsh_latencies[-1] * 1000, 3),
+                "hybrid_latency_ms": round(hybrid_latencies[-1] * 1000, 3),
+                "fused_latency_ms": round(fused_latencies[-1] * 1000, 3),
+            }
+            for k in METRIC_KS:
+                p, r = compute_precision_recall(fused_ids, ground_truth, k)
+                row[f"fused_p@{k}"] = round(p, 4)
+                row[f"fused_r@{k}"] = round(r, 4)
+            per_query_rows.append(row)
+
         log_print(f"  [TF-IDF] Build Time: {tfidf_build_time:.4f}s | Memory: {tfidf_memory:.2f} MB | Avg Latency: {np.mean(tfidf_latencies)*1000:.2f} ms", report)
         log_print(f"  [LSH]    Build Time: {lsh_build_time:.4f}s | Memory: {lsh_memory:.2f} MB | Avg Latency: {np.mean(lsh_latencies)*1000:.2f} ms", report)
         log_print(f"  [LSH-MinHash] Average Recall@10 (vs Exact Jaccard): {np.mean(lsh_recalls):.2%}", report)
-        log_print(f"  [LSH-Hybrid]  Average Recall@10 (vs Exact Jaccard): {np.mean(hybrid_recalls):.2%}\n", report)
-        log_print(f"  [LSH-Fused]   Average Recall@10 (vs Exact Jaccard): {np.mean(fused_recalls):.2%}\n", report)
+        log_print(f"  [LSH-Hybrid]  Average Recall@10 (vs Exact Jaccard): {np.mean(hybrid_recalls):.2%}", report)
+        log_print(f"  [LSH-Fused]   Average Recall@10 (vs Exact Jaccard): {np.mean(fused_recalls):.2%}", report)
+        log_print(f"  [LSH-Hybrid]  Avg Latency: {np.mean(hybrid_latencies)*1000:.2f} ms", report)
+        log_print(f"  [LSH-Fused]   Avg Latency: {np.mean(fused_latencies)*1000:.2f} ms\n", report)
+
+        log_print(">>> 1C. PRECISION/RECALL@K SUMMARY (mean +/- std)", report)
+        for method in ["tfidf", "minhash", "hybrid", "fused"]:
+            label = method.upper()
+            for k in METRIC_KS:
+                p_vals = metric_summary[method][k]["p"]
+                r_vals = metric_summary[method][k]["r"]
+                log_print(
+                    f"  [{label}] P@{k}: {np.mean(p_vals):.3f} +/- {np.std(p_vals):.3f} | "
+                    f"R@{k}: {np.mean(r_vals):.3f} +/- {np.std(r_vals):.3f}",
+                    report,
+                )
+        log_print("", report)
 
         # ---------------------------------------------------------------------
         # 2. PARAMETER SENSITIVITY
@@ -298,6 +424,95 @@ def run_experiments():
                 counts.append(len(res))
             log_print(f"    Threshold={h_thresh:<2} | Avg candidates retrieved: {np.mean(counts):.1f}", report)
 
+        # D. Stopwords On/Off in LSH preprocessing
+        log_print("\n  D. Stopwords Ablation (LSH preprocessing):", report)
+        for remove_sw in [True, False]:
+            t0 = time.time()
+            temp_lsh = MinHashLSH(threshold=0.2, num_perm=128)
+            temp_objs = {}
+            temp_shingles = {}
+            for c in base_chunks:
+                toks = clean_tokens_variant(c["text"], remove_stopwords=remove_sw)
+                sh = make_shingles(toks)
+                mh = compute_minhash(sh, num_perm=128)
+                temp_lsh.insert(str(c["chunk_id"]), mh)
+                temp_objs[c["chunk_id"]] = mh
+                temp_shingles[c["chunk_id"]] = sh
+            idx_time = time.time() - t0
+
+            recalls, latencies = [], []
+            for q in TEST_QUERIES[:5]:
+                q_toks = clean_tokens_variant(q, remove_stopwords=remove_sw)
+                q_sh = make_shingles(q_toks)
+                q_mh = compute_minhash(q_sh, num_perm=128)
+                t1 = time.perf_counter()
+                cands = temp_lsh.query(q_mh)
+                latencies.append(time.perf_counter() - t1)
+                if not cands:
+                    cands = [str(cid) for cid, _ in sorted(temp_objs.items(), key=lambda x: -x[1].jaccard(q_mh))[:30]]
+
+                ranked = []
+                for cid_str in cands:
+                    cid = int(cid_str)
+                    ranked.append((cid, jaccard(q_sh, temp_shingles[cid])))
+                ranked.sort(key=lambda x: -x[1])
+                ids = [cid for cid, _ in ranked[:10]]
+                gt = get_exact_jaccard_ground_truth(q, base_chunks, top_k=10)
+                recalls.append(len(set(ids) & set(gt)) / 10.0)
+
+            mode = "with_stopword_removal" if remove_sw else "without_stopword_removal"
+            log_print(
+                f"    {mode}: Indexing={idx_time:.2f}s | Avg Latency={np.mean(latencies)*1000:.2f}ms | Recall@10={np.mean(recalls):.2%}",
+                report,
+            )
+
+        # E. Word vs Char shingle ablation
+        log_print("\n  E. Word vs Char Shingle Ablation:", report)
+        # Word-level baseline
+        word_recalls = []
+        for q in TEST_QUERIES[:5]:
+            gt = get_exact_jaccard_ground_truth(q, base_chunks, top_k=10)
+            ids = [r["chunk_id"] for r in search_minhash(q, lsh_index, minhash_objs, chunk_shingles, base_chunks, top_k=10)]
+            word_recalls.append(len(set(ids) & set(gt)) / 10.0)
+        log_print(f"    Word shingles (1,2): Recall@10={np.mean(word_recalls):.2%}", report)
+
+        for k in [4, 5, 6]:
+            t0 = time.time()
+            temp_lsh = MinHashLSH(threshold=0.2, num_perm=128)
+            temp_objs = {}
+            temp_shingles = {}
+            for c in base_chunks:
+                toks = clean_tokens(c["text"])
+                sh = make_char_shingles_from_tokens(toks, k)
+                mh = compute_minhash(sh, num_perm=128)
+                temp_lsh.insert(str(c["chunk_id"]), mh)
+                temp_objs[c["chunk_id"]] = mh
+                temp_shingles[c["chunk_id"]] = sh
+            idx_time = time.time() - t0
+
+            recalls, latencies = [], []
+            for q in TEST_QUERIES[:5]:
+                q_toks = clean_tokens(q)
+                q_sh = make_char_shingles_from_tokens(q_toks, k)
+                q_mh = compute_minhash(q_sh, num_perm=128)
+                t1 = time.perf_counter()
+                cands = temp_lsh.query(q_mh)
+                latencies.append(time.perf_counter() - t1)
+                if not cands:
+                    cands = [str(cid) for cid, _ in sorted(temp_objs.items(), key=lambda x: -x[1].jaccard(q_mh))[:30]]
+                ranked = []
+                for cid_str in cands:
+                    cid = int(cid_str)
+                    ranked.append((cid, jaccard(q_sh, temp_shingles[cid])))
+                ranked.sort(key=lambda x: -x[1])
+                ids = [cid for cid, _ in ranked[:10]]
+                gt = get_exact_jaccard_ground_truth(q, base_chunks, top_k=10)
+                recalls.append(len(set(ids) & set(gt)) / 10.0)
+            log_print(
+                f"    Char shingles k={k}: Indexing={idx_time:.2f}s | Avg Latency={np.mean(latencies)*1000:.2f}ms | Recall@10={np.mean(recalls):.2%}",
+                report,
+            )
+
         log_print("\n", report)
 
         # ---------------------------------------------------------------------
@@ -305,7 +520,7 @@ def run_experiments():
         # ---------------------------------------------------------------------
         log_print(">>> 3. SCALABILITY TEST (Simulating Larger Datasets)", report)
         
-        multipliers = [1, 2, 5]
+        multipliers = [1, 2, 5, 10, 20]
         for m in multipliers:
             # Duplicate corpus and assign unique IDs
             scaled_chunks = []
@@ -320,29 +535,79 @@ def run_experiments():
             # Measure LSH Indexing
             t0 = time.time()
             s_lsh = MinHashLSH(threshold=0.2, num_perm=128)
-            s_objs = {}
+            s_objs, s_shingles = {}, {}
             for c in scaled_chunks:
                 sh = make_shingles(clean_tokens(c["text"]))
                 mh = compute_minhash(sh, num_perm=128)
                 s_lsh.insert(str(c["chunk_id"]), mh)
                 s_objs[c["chunk_id"]] = mh
+                s_shingles[c["chunk_id"]] = sh
             idx_time = time.time() - t0
+            idx_memory = get_memory_footprint(s_lsh) + get_memory_footprint(s_objs)
 
             # Measure Query Latency
             latencies = []
+            recalls = []
             for q in TEST_QUERIES[:5]:
                 t1 = time.perf_counter()
                 q_mh = compute_minhash(make_shingles(clean_tokens(q)), num_perm=128)
-                _ = s_lsh.query(q_mh)
+                candidate_ids = s_lsh.query(q_mh)
                 latencies.append(time.perf_counter() - t1)
-            
-            log_print(f"  {m}x Corpus ({len(scaled_chunks)} chunks) | LSH Index Time: {idx_time:.2f}s | Query Latency: {np.mean(latencies)*1000:.2f}ms", report)
+                if not candidate_ids:
+                    candidate_ids = [str(cid) for cid, _ in sorted(s_objs.items(), key=lambda x: -x[1].jaccard(q_mh))[:30]]
+                ranked = []
+                q_sh = make_shingles(clean_tokens(q))
+                for cid_str in candidate_ids:
+                    cid = int(cid_str)
+                    ranked.append((cid, jaccard(q_sh, s_shingles[cid])))
+                ranked.sort(key=lambda x: -x[1])
+                ids = [cid for cid, _ in ranked[:10]]
+                gt = get_exact_jaccard_ground_truth(q, base_chunks, top_k=10)
+                recalls.append(len(set(ids) & set(gt)) / 10.0)
+
+            log_print(
+                f"  {m}x Corpus ({len(scaled_chunks)} chunks) | LSH Index Time: {idx_time:.2f}s | "
+                f"Memory: {idx_memory:.2f}MB | Query Latency: {np.mean(latencies)*1000:.2f}ms | "
+                f"Recall@10 trend: {np.mean(recalls):.2%}",
+                report,
+            )
         log_print("\n", report)
 
         # ---------------------------------------------------------------------
-        # 4. QUALITATIVE EVALUATION
+        # 4. FREQUENT ITEMSET MINING (Query Pattern Extension)
         # ---------------------------------------------------------------------
-        log_print(">>> 4. QUALITATIVE EVALUATION (Answers for 15 Queries)", report)
+        log_print(">>> 4. FREQUENT ITEMSET MINING (QUERY PATTERNS)", report)
+        query_records = build_query_log_records(TEST_QUERIES, "2026-04-25")
+        transactions = build_transactions(query_records)
+        frequent_itemsets = apriori_frequent_itemsets(
+            transactions=transactions,
+            min_support_count=2,
+            max_k=3,
+        )
+        write_query_log_csv(query_records, QUERY_LOG_FILE)
+        write_itemsets_csv(frequent_itemsets, FREQ_ITEMSETS_CSV)
+        write_itemsets_text_report(frequent_itemsets, FREQ_ITEMSETS_TXT)
+
+        log_print(
+            f"  Query log records: {len(query_records)} | transactions: {len(transactions)}",
+            report,
+        )
+        for k in sorted(frequent_itemsets.keys()):
+            log_print(f"  Frequent itemsets k={k}: {len(frequent_itemsets[k])}", report)
+        if frequent_itemsets.get(2):
+            top_pair = frequent_itemsets[2][0]
+            log_print(
+                f"  Top pair pattern: {' | '.join(top_pair[0])} (support={top_pair[1]})",
+                report,
+            )
+        log_print(f"  Saved query log: {QUERY_LOG_FILE}", report)
+        log_print(f"  Saved itemsets CSV: {FREQ_ITEMSETS_CSV}", report)
+        log_print(f"  Saved itemsets report: {FREQ_ITEMSETS_TXT}\n", report)
+
+        # ---------------------------------------------------------------------
+        # 5. QUALITATIVE EVALUATION
+        # ---------------------------------------------------------------------
+        log_print(">>> 5. QUALITATIVE EVALUATION (Answers for 15 Queries)", report)
         
         for idx, q in enumerate(TEST_QUERIES, 1):
             log_print(f"\n[Query {idx}] {q}", report)
@@ -371,7 +636,24 @@ def run_experiments():
             log_print(f"  [Evidence] Source: {res[0]['source']} (Pg {res[0]['page']}) - Score: {res[0]['score']}", report)
             log_print(f"             \"{res[0]['text'][:150]}...\"", report)
 
+    if per_query_rows:
+        fieldnames = [
+            "query",
+            "top_source",
+            "top_page",
+            "tfidf_latency_ms",
+            "minhash_latency_ms",
+            "hybrid_latency_ms",
+            "fused_latency_ms",
+        ] + [f"fused_p@{k}" for k in METRIC_KS] + [f"fused_r@{k}" for k in METRIC_KS]
+        with open(PER_QUERY_METRICS_FILE, "w", newline="", encoding="utf-8") as f_csv:
+            writer = csv.DictWriter(f_csv, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(per_query_rows)
+
     print(f"\n[SUCCESS] Comprehensive experiments completed! Check {REPORT_FILE}")
+    print(f"[SUCCESS] Per-query metrics table written to {PER_QUERY_METRICS_FILE}")
+    print(f"[SUCCESS] Frequent itemset reports written to {FREQ_ITEMSETS_CSV} and {FREQ_ITEMSETS_TXT}")
 
 if __name__ == "__main__":
     run_experiments()

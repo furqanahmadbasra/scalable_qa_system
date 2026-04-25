@@ -5,143 +5,207 @@
 Loaded 178 chunks for baseline testing.
 
 >>> 1. EXACT (TF-IDF) VS APPROXIMATE (LSH) RETRIEVAL
-  [TF-IDF] Build Time: 0.3170s | Memory: 0.75 MB | Avg Latency: 1.14 ms
-  [LSH]    Build Time: 1.3178s | Memory: 0.92 MB | Avg Latency: 3.10 ms
-  [LSH]    Average Recall@10 (vs Exact Jaccard): 65.33%
+  [TF-IDF] Build Time: 0.2002s | Memory: 0.75 MB | Avg Latency: 0.86 ms
+  [LSH]    Build Time: 0.6090s | Memory: 0.68 MB | Avg Latency: 1.54 ms
+  [LSH-MinHash] Average Recall@10 (vs Exact Jaccard): 59.33%
+  [LSH-Hybrid]  Average Recall@10 (vs Exact Jaccard): 40.67%
+
+  [LSH-Fused]   Average Recall@10 (vs Exact Jaccard): 45.33%
 
 >>> 2. PARAMETER SENSITIVITY ANALYSIS
   A. Number of Hash Functions (MinHash):
-    Perms=32  | Indexing: 2.85s | Avg Latency: 0.83ms | Recall@10: 10.00%
-    Perms=64  | Indexing: 2.85s | Avg Latency: 1.56ms | Recall@10: 30.00%
-    Perms=128 | Indexing: 3.01s | Avg Latency: 3.38ms | Recall@10: 58.00%
-    Perms=256 | Indexing: 3.19s | Avg Latency: 3.55ms | Recall@10: 86.00%
+    Perms=32  | Indexing: 1.07s | Avg Latency: 0.65ms | Recall@10: 32.00%
+    Perms=64  | Indexing: 1.10s | Avg Latency: 0.73ms | Recall@10: 38.00%
+    Perms=128 | Indexing: 1.15s | Avg Latency: 0.90ms | Recall@10: 46.00%
+    Perms=256 | Indexing: 1.24s | Avg Latency: 1.24ms | Recall@10: 60.00%
 
   B. Jaccard Threshold (implicitly affects LSH Bands):
-    Threshold=0.01 -> (Bands=128, Rows=1) | LSH Query Latency: 0.76ms
-    Threshold=0.1  -> (Bands=64, Rows=2) | LSH Query Latency: 0.77ms
-    Threshold=0.5  -> (Bands=25, Rows=5) | LSH Query Latency: 0.68ms
+    Threshold=0.1  -> (Bands=64, Rows=2) | LSH Query Latency: 0.52ms
+    Threshold=0.2  -> (Bands=28, Rows=2) | LSH Query Latency: 0.46ms
+    Threshold=0.3  -> (Bands=37, Rows=3) | LSH Query Latency: 0.46ms
 
   C. Hamming Threshold (SimHash):
     Threshold=5  | Avg candidates retrieved: 100.0
     Threshold=15 | Avg candidates retrieved: 80.2
-    Threshold=25 | Avg candidates retrieved: 76.4
+    Threshold=25 | Avg candidates retrieved: 37.0
 
 
 >>> 3. SCALABILITY TEST (Simulating Larger Datasets)
-  1x Corpus (178 chunks) | LSH Index Time: 1.08s | Query Latency: 0.80ms
-  2x Corpus (356 chunks) | LSH Index Time: 2.16s | Query Latency: 0.89ms
-  5x Corpus (890 chunks) | LSH Index Time: 5.18s | Query Latency: 0.80ms
+  1x Corpus (178 chunks) | LSH Index Time: 0.43s | Query Latency: 0.43ms
+  2x Corpus (356 chunks) | LSH Index Time: 0.92s | Query Latency: 0.43ms
+  5x Corpus (890 chunks) | LSH Index Time: 2.12s | Query Latency: 0.44ms
 
 
 >>> 4. QUALITATIVE EVALUATION (Answers for 15 Queries)
 
 [Query 1] What is the minimum GPA requirement?
-  [LLM Answer] I cannot find this information in the provided handbook excerpts.
-  [Evidence] Source: ug_handbook.pdf (Pg 105) - Score: 0.1095
-             "NUST Undergraduate Student Handbook 101 c. Assistant Director Hostels (Male) d. Assistant Director Hostels (Female) e. Assistant Director Hostels (Mes..."
+  [LLM Answer] According to Excerpt 1 (pg_handbook.pdf, Page: 34), the minimum cumulative GPA required for a Ph.D. student is 3.5 out of 4.0 in the 18 credit hours of level courses to be counted towards a Ph.D.
+
+Additionally, according to Excerpt 3 (pg_handbook.pdf, Page: 20), the minimum GPA requirement for a student to be dropped from the MS programme is:
+
+- CGPA remains below 2.00 in any semester (Excerpt 3, point 3a)
+- CGPA remains below 3.00 after completion of the coursework (Excerpt 3, point 3c)
+  [Evidence] Source: pg_handbook.pdf (Pg 34) - Score: 0.6736
+             "NUST Postgraduate Student Handbook 31 CHAPTER 5: Award of Ph.D. Degree and Academic Deficiencies for Ph.D. Students 1. Award of Ph.D. Degree. On recom..."
 
 [Query 2] What happens if a student fails a course?
-  [LLM Answer] According to Excerpt 1, if a student fails a course, they will receive an F grade. Additionally, if a student fails a Major Field Course, they will not be promoted to the next semester (7th semester for Bachelor of Industrial Design and 9th semester for Bachelor of Architecture) as per Excerpt 2, point c.
+  [LLM Answer] According to Excerpt 1, if a student fails a course, they will be eligible to repeat the course to clear the W/F/XF grade. The student's transcript will show both the old grade and the new earned grade, but the better grade will be used in the computation of CGPA.
 
-For non-credited courses, a student will receive an F/XF grade if their attendance falls below 75% (Excerpt 1, point 6).
-  [Evidence] Source: ug_handbook.pdf (Pg 31) - Score: 0.1728
-             "NUST Undergraduate Student Handbook 27 5. Academic Standards for Award of Degree. The Grade Point will be awarded based on the absolute grading system..."
+Additionally, according to Excerpt 1, if a student fails a course and repeats it, but fails again, the number of Fs counted in this case will be one F only.
+
+According to Excerpt 2, if a student earns five F/XF grades or more in the first semester, they may be subject to withdrawal on academic deficiencies.
+
+According to Excerpt 3, if a student fails a course, they will be eligible to repeat the course to clear the W/F/XF grade. The student's transcript will show both the old grade and the new earned grade, but the better grade will be used in the computation of CGPA.
+
+In case of a failed subject being a pre-requisite for a course in the following semester, the student will have to clear it through retest within the first six academic weeks of the next semester, according to Excerpt 3.
+  [Evidence] Source: ug_handbook.pdf (Pg 41) - Score: 0.6786
+             "NUST Undergraduate Student Handbook 37 Note: If a student is likely to be withdrawn on academic deficiencies, s/he will be duly warned, and counselled..."
 
 [Query 3] What is the attendance policy?
-  [LLM Answer] I cannot find the attendance policy in the provided handbook excerpts.
-  [Evidence] Source: pg_handbook.pdf (Pg 96) - Score: 0.1176
-             "NUST Postgraduate Student Handbook 93 Annex B to Para 22 to Chapter 2 Re-Checking of Papers 1. Fill out the re-checking application form completely. 2..."
+  [LLM Answer] According to Excerpt 1, the attendance policy is as follows:
+
+- A student is not allowed to appear in the final examination of a subject in which their attendance is less than 75%, and they will be awarded an XF grade in that subject. (Excerpt 1, Section 4, a)
+
+- A student who misses any examination/test due to illness or other acceptable reasons approved by the DBS/FBS, provided their attendance in a particular course is not less than 75%, is given I as a grade. (Excerpt 1, Section 4, b)
+
+Additionally, according to Excerpt 2, a student will be dropped from the MS programme if their attendance remains below 75% in more than two courses, and an XF grade will be awarded in the course in which the student's attendance is below 75%. (Excerpt 2, Section 3, e)
+
+According to Excerpt 2, a student's admission/registration will be suspended if they remain absent for 30 or more consecutive days without intimation or any valid reason. (Excerpt 2, Section 4, a)
+  [Evidence] Source: ug_handbook.pdf (Pg 45) - Score: 0.6664
+             "NUST Undergraduate Student Handbook 41 Class Participation - - 0 05* Assignments / Project(s) / Case Studies Own time - 10 40 * Shall be allocated onl..."
 
 [Query 4] How many times can a course be repeated?
   [LLM Answer] I cannot find this information in the provided handbook excerpts.
-  [Evidence] Source: ug_handbook.pdf (Pg 31) - Score: 0.1213
-             "NUST Undergraduate Student Handbook 27 5. Academic Standards for Award of Degree. The Grade Point will be awarded based on the absolute grading system..."
+  [Evidence] Source: ug_handbook.pdf (Pg 41) - Score: 0.7005
+             "NUST Undergraduate Student Handbook 37 Note: If a student is likely to be withdrawn on academic deficiencies, s/he will be duly warned, and counselled..."
 
 [Query 5] What is the policy on plagiarism?
-  [LLM Answer] I cannot find this information in the provided handbook excerpts.
-  [Evidence] Source: ug_handbook.pdf (Pg 49) - Score: 0.1465
-             "NUST Undergraduate Student Handbook 45 (4) Suspension on reasons beyond the student's control or authorized grounds/sanctioned leave from the competen..."
+  [LLM Answer] According to Excerpt 1, paragraph 33, "All academic work submitted by a student must be his/her work. If a student submits work done by any other person, it is plagiarism, cause for formal school discipline, and justification for any faculty member to award a failing grade and or for the DBS/FBS to cancel grade previously awarded only in that assignment/project."
+
+Additionally, Excerpt 2, paragraph 12(a), defines academic dishonesty as including plagiarism, which encompasses all cases of violations of the University Policy on Academic Dishonesty by committing, or attempting to commit, academic dishonesty including, but not limited to, cheating, plagiarism, fabrication, facilitating academic dishonesty to others, and unauthorized collaboration.
+  [Evidence] Source: ug_handbook.pdf (Pg 42) - Score: 0.6431
+             "38 NUST Undergraduate Student Handbook Semester subject to conditions laid down in chapter 8 (Summer Semester & Summer Camps). However, for Major Fiel..."
 
 [Query 6] How are final grades calculated?
-  [LLM Answer] According to Excerpt 1, the performance of each student in a course of study shall be graded as follows:
+  [LLM Answer] According to Excerpt 1, the final grade is calculated as follows:
 
-Grades Numerical Grade Grade Point
-A 4.0
-B+ 3.50
-B 3.0
-C+ 2.50
-C 2.00
-D+ 1.50
-D 1.00
-F 0.00
-I Incomplete
-W Dropped
-Q Qualified
-T Transfer
-XF 0.00 (F Grade due to shortage of attendance)
+"For subjects having two categories (theory and practical) combined, the final grade is computed by multiplying the number of credits assigned to each category with the percentage marks obtained in that category and dividing the sum of the two by the total credits in that subject."
 
-It is also mentioned in Excerpt 1 that the University policy is to work out GPA by awarding relative grading on a scale of 1.00-4.00 points. To earn course credits, a student must obtain a minimum of 1.0-grade point (D).
-  [Evidence] Source: ug_handbook.pdf (Pg 45) - Score: 0.0889
-             "NUST Undergraduate Student Handbook 41 Class Participation - - 0 05* Assignments / Project(s) / Case Studies Own time - 10 40 * Shall be allocated onl..."
+For example, as mentioned in Excerpt 1:
+
+"Overall grade = (70 X 3+90 X 1)/ (3+1) =75 %"
+
+Additionally, the overall subject percentage is rounded off to two decimal points by the individual faculty.
+
+The performance of each student in a course of studies is graded using the letter grade system, as mentioned in Excerpt 1 (Section 19).
+  [Evidence] Source: ug_handbook.pdf (Pg 19) - Score: 0.6534
+             "NUST Undergraduate Student Handbook 15 17. For purely theoretical and purely practical courses, the grading scheme is evident in the suggested format...."
 
 [Query 7] Can a student freeze a semester?
-  [LLM Answer] According to Excerpt 3 (Source: ug_handbook.pdf, Page 42), a student may seek deferment from regular studies, which is referred to as "Deferment of Semester(s)". However, the term "freeze a semester" is not explicitly mentioned in the provided handbook excerpts.
+  [LLM Answer] According to Excerpt 1 (Page 70), a student may freeze a semester, but the details are referred to in other paragraphs. Specifically, it states: "b. Freezing/Deferment of a semester. Refer to Para 9 to Chapter 3, Para 31 to Chapter 4, Para 15 to Chapter 5 for details."
 
-The closest related information is about deferment, which allows a student to repeat courses already studied on payment of the prescribed fee for repetition of courses, but not permitted to study new courses.
-  [Evidence] Source: ug_handbook.pdf (Pg 25) - Score: 0.1766
-             "NUST Undergraduate Student Handbook 21 c. Compulsions. While on probation, a student shall: (1) contact concerned faculty for guidance; and, (2) keep ..."
+To find the details, we would need to refer to the mentioned paragraphs in Chapters 3, 4, and 5. However, based on the information provided, it is clear that freezing a semester is an option, but the specific rules and procedures are outlined in the mentioned paragraphs.
+  [Evidence] Source: ug_handbook.pdf (Pg 70) - Score: 0.6984
+             "66 NUST Undergraduate Student Handbook 11. Other Academic Provisions. a. Registration of number of CHs per Semester. NUST offers flexibility to the st..."
 
 [Query 8] What are the requirements for graduation?
-  [LLM Answer] According to Excerpt 1, the requirements for graduation are as follows:
+  [LLM Answer] To determine the requirements for graduation, we need to refer to Excerpt 1, specifically the section on the Award of Master Degree in Business Administration/Executive Master in Business Administration/Social Sciences.
 
-On recommendations of the FBS of the School, the University will award Master degree to the students who satisfy the following conditions:
+According to Excerpt 1, the University will award a Master degree to students who satisfy the following conditions:
 
-- For 16 years education graduates with Economics and Business Administration background: 36 credit hours, 1-4 years duration.
-- For 16 years education graduates with a Psychology background: 38 credit hours, 1-4 years duration.
-- For 16 years education graduates with Mass Communication/Journalism/Media Studies/ Public Relations background: 30 credit hours, 1-4 years duration.
-- For 16 years education graduates with Master or Bachelors (Four Years) degree from any academic background: 30 credit hours, 2-4 years duration.
-- For 16 years education graduates in Engineering/ BBA /MBA/B.Com from HEC/ PEC affiliated institution: 36 credit hours, 1-4 years duration.
-- For 16 years education graduates with Master or Bachelor degree in relevant discipline: 36 credit hours, 2-4 years duration.
-- For 16 years education graduates (Engineering, IT, Management and Social Sciences): 36 credit hours, 1-4 years duration.
-- For 16 years education graduates with B. Arch degree from HEC recognized institute and accredited by PCATP: 43 credit hours, 1-4 years duration.
+"On recommendations of the FBS of the School, the University will award Master degree to the students who satisfy the following conditions:"
 
-These requirements are specified in Excerpt 1, Chapter 4, Award of Master Degree in Business Administration/Executive Master in Business Administration/Social Sciences.
-  [Evidence] Source: pg_handbook.pdf (Pg 25) - Score: 0.1193
+However, the specific requirements for graduation are not explicitly stated in the provided excerpts. The excerpts only mention the credit hours, duration, and minimum and maximum time limits for each program.
+
+Therefore, I must state: "I cannot find this information in the provided handbook excerpts."
+  [Evidence] Source: pg_handbook.pdf (Pg 25) - Score: 0.6458
              "NUST Postgraduate Student Handbook 22 CHAPTER 4: Award of Master Degree in Business Administration/Executive Master in Business Administration/Social ..."
 
 [Query 9] Is there a penalty for late fee submission?
-  [LLM Answer] I cannot find information about late fee submission penalties in the provided handbook excerpts.
-  [Evidence] Source: ug_handbook.pdf (Pg 81) - Score: 0.107
-             "NUST Undergraduate Student Handbook 77 Chapter 11: NUST Code of Conduct General 1. NUST is a leading research-intensive university in Pakistan compara..."
+  [LLM Answer] According to Excerpt 2 (Source: pg_handbook.pdf, Page: 83), for late deposit of dues, students will pay a fine as mentioned in the hostel rent invoice/mess bill.
+  [Evidence] Source: pg_handbook.pdf (Pg 35) - Score: 0.6194
+             "NUST Postgraduate Student Handbook 32 Minimum one research paper published in Journals with WoS-JCR Impact Factor and one paper presented/published in..."
 
 [Query 10] What is the maximum credit hour limit?
-  [LLM Answer] I cannot find this information in the provided handbook excerpts.
-  [Evidence] Source: pg_handbook.pdf (Pg 86) - Score: 0.1254
-             "NUST Postgraduate Student Handbook 83 (6) Disturbing other fellow residents by playing loud music or any such instruments at a high volume. (7) No ele..."
+  [LLM Answer] According to Excerpt 1, the maximum credit hour limit for a student to pay a full tuition fee for regular semesters is 12 credits in Fall and Spring Semester. Additionally, a student may enrol in Summer Semester for a maximum of 6 (six) credit hours of course/research work.
+
+However, the maximum credit hour limit for a specific programme is mentioned in Excerpt 2, which states that:
+
+- MBA: 66 Credit Hours
+- MS Economics / MS HRM: 36 Credit Hours
+- MS Mass Communication / MS Development Studies: 30 Credit Hours
+- MS Clinical Psychology: 38 Credit Hours
+- MS Career Counselling and Education: 30 Credit Hours
+- MS Logistics and Supply Chain Management / MS Governance and Public Policy / MS Innovation and Entrepreneurship: 36 Credit Hours
+- EMBA: 66 Credit Hours
+  [Evidence] Source: pg_handbook.pdf (Pg 19) - Score: 0.6639
+             "NUST Postgraduate Student Handbook 16 CHAPTER 3: Award of Master Degrees and Academic Standards for Master Students (Less Business & Social Sciences) ..."
 
 [Query 11] How to apply for a hostel?
-  [LLM Answer] To apply for a hostel, you need to follow the steps mentioned in Excerpt 2, specifically under the heading "Temporary Students" (Page 97 of ug_handbook.pdf). 
+  [LLM Answer] To apply for a hostel, students can follow the guidelines as per the NUST Hostel Allotment Policy. Existing students will apply through their Qalam Account for Hostel Accommodation, while newcomers will apply through pgadmission.nust.edu.pk (PG Students) & ugadmissions.nust.edu.pk (UG Students).
 
-According to Excerpt 2, an application form is available at the hostel's office, which requires the signature of parents/guardians.
-  [Evidence] Source: ug_handbook.pdf (Pg 82) - Score: 0.1398
-             "78 NUST Undergraduate Student Handbook a. Cheating. Intentionally using or attempting to use unauthorized materials, information, or study aids in any..."
+According to Excerpt 1 (Chapter 12: Living on Campus, Page 95) and Excerpt 2 (Chapter 11: Living on Campus, Page 80), the guidelines to apply for Hostel Accommodation are as follows:
 
-[Query 12] What is the policy for dropping a course?
-  [LLM Answer] I cannot find this information in the provided handbook excerpts.
-  [Evidence] Source: ug_handbook.pdf (Pg 95) - Score: 0.1569
+- Existing students will apply through their Qalam Account for Hostel Accommodation.
+- Newcomers will apply through pgadmission.nust.edu.pk (PG Students) & ugadmissions.nust.edu.pk (UG Students).
+  [Evidence] Source: ug_handbook.pdf (Pg 95) - Score: 0.6927
              "NUST Undergraduate Student Handbook 91 Chapter 12: Living on Campus 1. Introduction. NUST Hostels have been established for the outstation National an..."
 
+[Query 12] What is the policy for dropping a course?
+  [LLM Answer] According to Excerpt 2 (Page 16), the policy for dropping a course is as follows:
+
+- Adding / Dropping of course(s) shall be allowed within the first two weeks of start of a regular semester and 1st week of a summer semester.
+- A student is allowed to drop a registered course latest by the 8th week of a regular semester and 5th week of a summer semester with the recommendation of the HoD and approval of the Dean / Associate Dean.
+- Letter grade W will appear in the transcript against the specific course and will not be considered for computation of GPA.
+- Students with W on the transcript will not be considered for any academic honour/award.
+- A Masters student is allowed to get one W in a semester, provided that registered credit hours do not fall below 6 credit hours in a regular semester.
+
+(Excerpt 2, Page 16, Section 18: Adding/Dropping of Course(s))
+  [Evidence] Source: pg_handbook.pdf (Pg 29) - Score: 0.6582
+             "NUST Postgraduate Student Handbook 26 9. Award of F, I, and W Grades a. Award of Grade F. In addition to the F grade awarded based on the academic fai..."
+
 [Query 13] Who is eligible for a gold medal?
-  [LLM Answer] I cannot find this information in the provided handbook excerpts.
-  [Evidence] Source: ug_handbook.pdf (Pg 77) - Score: 0.1252
-             "NUST Undergraduate Student Handbook 73 Chapter 9: Services for International Students 1. Visa Regulations: Students shall be responsible to obtain and..."
+  [LLM Answer] According to Excerpt 1, the following types of students are eligible for a gold medal:
+
+- The student who secures 1st Position in Academics (President's Gold Medal, Section 9.a)
+- The student who secures 1st Position among military students in Academic (COAS/CNS/CAS Gold Medal, Section 9.e)
+- The students of the Best Final Year Project (FYP*) group having A grade in FYP* (Rector's Gold Medal, Section 9.c)
+
+Additionally, according to Excerpt 2, a student who repeats a course to clear a W grade is eligible for the Rector's Gold Medal, except for the student who repeats a course to improve their CGPA.
+  [Evidence] Source: ug_handbook.pdf (Pg 72) - Score: 0.6617
+             "68 NUST Undergraduate Student Handbook Transcript/Degree) by submitting Rs 700 per copy. All the Information regarding Attestation/Verification is ava..."
 
 [Query 14] What are the rules for exam re-checking?
-  [LLM Answer] I cannot find this information in the provided handbook excerpts.
-  [Evidence] Source: ug_handbook.pdf (Pg 14) - Score: 0.1087
-             "10 NUST Undergraduate Student Handbook Chapter 2: Scheme of Studies, Examinations, and Academic Standards for the Award of Degrees 1. Credit Hours. Th..."
+  [LLM Answer] According to Excerpt 2 (Annex B to Para 22 to Chapter 2) and Excerpt 3 (Annex A to Para 30 to Chapter 2), the rules for exam re-checking are as follows:
+
+1. Fill out the re-checking application form completely.
+2. Deposit re-checking fee amounting to Rs 500/- per paper and enclose original deposit slip along with the application form.
+3. Clearly mention the subject/paper required to be re-checked.
+4. An application form shall be entertained only if it is complete in all respects and is received in the office along with the prescribed fee within 15 days after the declaration of the relevant result.
+5. Incomplete and incorrect forms shall be returned to the candidate for completion and if it is not submitted within the prescribed time limit, no action shall be taken on them.
+6. Time-barred applications shall not be entertained.
+7. Re-checking does not mean re-assessment or re-evaluation of the answer-book.
+
+Additionally, the following conditions must be ensured during the re-checking process:
+
+a. There is no mistake in the grand total on the title page of the answer book.
+b. The total of various parts of a question has been correctly made at the end of each question.
+c. All totals have been correctly brought forward on the title page of the answer book.
+d. No portion of the answer book has been left un-marked.
+e. The total number of questions attempted does not exceed the limit allowed in the Question Paper.
+f. Total marks in the answer-book tally with the marks sheet.
+g. Viva/practical and internal assessment marks are not re-tabulated.
+h. The student or anybody on his/her behalf has no right to see or examine the answer-book for any purpose.
+i. (In the case of undergraduate students) An increase/decrease in the final marks of the student will be decided according to the results of re-checking.
+  [Evidence] Source: pg_handbook.pdf (Pg 18) - Score: 0.6674
+             "NUST Postgraduate Student Handbook 15 22. Re-assessment/Re-checking of Papers. Re-assessment/re-checking of papers means a re-evaluation of answer(s) ..."
 
 [Query 15] How is a student placed on academic probation?
-  [LLM Answer] I cannot find this information in the provided handbook excerpts.
-  [Evidence] Source: pg_handbook.pdf (Pg 18) - Score: 0.145
-             "NUST Postgraduate Student Handbook 15 22. Re-assessment/Re-checking of Papers. Re-assessment/re-checking of papers means a re-evaluation of answer(s) ..."
+  [LLM Answer] A student should be placed on academic probation under the following conditions:
+
+1. His/her CGPA is less than 2.00, and s/he does not qualify for withdrawal. This clause will not be applicable to the first semester. (Excerpt 1, Page 24)
+2. On disciplinary grounds when recommended by the respective discipline committee of the institution and the discipline committee of NUST. (Excerpt 1, Page 24)
+
+According to Excerpt 1, Page 24, and Excerpt 2, Page 38, the conditions for academic probation are consistent across both excerpts.
+  [Evidence] Source: ug_handbook.pdf (Pg 24) - Score: 0.6954
+             "20 NUST Undergraduate Student Handbook (a) Issue warning to the student (b) Place the student on probation (c) Recommend suspension (d) Recommend with..."

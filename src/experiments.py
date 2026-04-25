@@ -10,8 +10,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 # Import from existing modules
 from indexing import preprocess_and_stem
-from lsh_indexing import clean_string, make_shingles, compute_minhash, compute_simhash
-from lsh_retrieval import jaccard, hamming, search_simhash, search_minhash, hybrid_search
+from lsh_indexing import clean_tokens, make_shingles, compute_minhash, compute_simhash
+from lsh_retrieval import jaccard, hamming, search_simhash, search_minhash, hybrid_search, fused_search
 from answer_generation import generate_answer
 
 CHUNKS_FILE = os.path.join(os.path.dirname(__file__), "..", "data", "chunks", "chunks.json")
@@ -49,10 +49,10 @@ def get_memory_footprint(obj):
 
 def get_exact_jaccard_ground_truth(query, chunks, top_k=10):
     """Computes EXACT Jaccard similarity across ALL chunks to serve as ground truth for Recall."""
-    q_shingles = make_shingles(clean_string(query))
+    q_shingles = make_shingles(clean_tokens(query))
     scores = []
     for c in chunks:
-        c_shingles = make_shingles(clean_string(c['text']))
+        c_shingles = make_shingles(clean_tokens(c['text']))
         scores.append((c['chunk_id'], jaccard(q_shingles, c_shingles)))
     scores.sort(key=lambda x: -x[1])
     return [cid for cid, score in scores[:top_k]]
@@ -83,22 +83,23 @@ def run_experiments():
 
         # Build LSH (Baseline parameters)
         start_time = time.time()
-        lsh_index = MinHashLSH(threshold=0.01, num_perm=128)
-        minhash_objs, simhash_fps, chunk_shingles = {}, {}, {}
+        lsh_index = MinHashLSH(threshold=0.2, num_perm=128)
+        minhash_objs, simhash_fps, chunk_shingles, chunk_tokens = {}, {}, {}, {}
         for c in base_chunks:
             cid = c["chunk_id"]
-            text_c = clean_string(c["text"])
-            sh = make_shingles(text_c)
+            tokens = clean_tokens(c["text"])
+            sh = make_shingles(tokens)
             mh = compute_minhash(sh, num_perm=128)
             lsh_index.insert(str(cid), mh)
             minhash_objs[cid] = mh
-            simhash_fps[cid] = compute_simhash(text_c.split(), num_bits=64)
+            simhash_fps[cid] = compute_simhash(tokens, num_bits=64)
             chunk_shingles[cid] = sh
+            chunk_tokens[cid] = tokens
         lsh_build_time = time.time() - start_time
         lsh_memory = get_memory_footprint(lsh_index) + get_memory_footprint(minhash_objs) + get_memory_footprint(simhash_fps)
 
         # Query Latency & Recall Testing
-        tfidf_latencies, lsh_latencies, lsh_recalls = [], [], []
+        tfidf_latencies, lsh_latencies, lsh_recalls, hybrid_recalls, fused_recalls = [], [], [], [], []
         
         for q in TEST_QUERIES:
             # TF-IDF Latency
@@ -109,7 +110,7 @@ def run_experiments():
 
             # LSH Latency
             t0 = time.perf_counter()
-            _ = hybrid_search(q, lsh_index, minhash_objs, simhash_fps, chunk_shingles, base_chunks, top_k=10)
+            _ = hybrid_search(q, lsh_index, minhash_objs, simhash_fps, chunk_shingles, chunk_tokens, base_chunks, top_k=10)
             lsh_latencies.append(time.perf_counter() - t0)
 
             # Accuracy (Recall@10 against Exact Jaccard)
@@ -119,9 +120,33 @@ def run_experiments():
             intersection = len(set(ground_truth) & set(lsh_retrieved_ids))
             lsh_recalls.append(intersection / 10.0 if ground_truth else 0)
 
+            hybrid_results = hybrid_search(q, lsh_index, minhash_objs, simhash_fps, chunk_shingles, chunk_tokens, base_chunks, top_k=10)
+            hybrid_retrieved_ids = [r["chunk_id"] for r in hybrid_results]
+            hybrid_intersection = len(set(ground_truth) & set(hybrid_retrieved_ids))
+            hybrid_recalls.append(hybrid_intersection / 10.0 if ground_truth else 0)
+
+            fused_results = fused_search(
+                q,
+                lsh_index,
+                minhash_objs,
+                simhash_fps,
+                chunk_shingles,
+                chunk_tokens,
+                base_chunks,
+                vectorizer,
+                tfidf_matrix,
+                top_k=10,
+                candidate_pool=50,
+            )
+            fused_ids = [r["chunk_id"] for r in fused_results]
+            fused_intersection = len(set(ground_truth) & set(fused_ids))
+            fused_recalls.append(fused_intersection / 10.0 if ground_truth else 0)
+
         log_print(f"  [TF-IDF] Build Time: {tfidf_build_time:.4f}s | Memory: {tfidf_memory:.2f} MB | Avg Latency: {np.mean(tfidf_latencies)*1000:.2f} ms", report)
         log_print(f"  [LSH]    Build Time: {lsh_build_time:.4f}s | Memory: {lsh_memory:.2f} MB | Avg Latency: {np.mean(lsh_latencies)*1000:.2f} ms", report)
-        log_print(f"  [LSH]    Average Recall@10 (vs Exact Jaccard): {np.mean(lsh_recalls):.2%}\n", report)
+        log_print(f"  [LSH-MinHash] Average Recall@10 (vs Exact Jaccard): {np.mean(lsh_recalls):.2%}", report)
+        log_print(f"  [LSH-Hybrid]  Average Recall@10 (vs Exact Jaccard): {np.mean(hybrid_recalls):.2%}\n", report)
+        log_print(f"  [LSH-Fused]   Average Recall@10 (vs Exact Jaccard): {np.mean(fused_recalls):.2%}\n", report)
 
         # ---------------------------------------------------------------------
         # 2. PARAMETER SENSITIVITY
@@ -132,7 +157,7 @@ def run_experiments():
         log_print("  A. Number of Hash Functions (MinHash):", report)
         for perms in [32, 64, 128, 256]:
             t0 = time.time()
-            temp_lsh = MinHashLSH(threshold=0.01, num_perm=perms)
+            temp_lsh = MinHashLSH(threshold=0.2, num_perm=perms)
             temp_objs = {}
             for c in base_chunks:
                 # We use the 'perms' variable here for the index
@@ -146,12 +171,18 @@ def run_experiments():
                 
                 # Instead of calling search_minhash (which uses default 128),
                 # manually compute the query minhash with the CURRENT 'perms'
-                q_text = clean_string(q)
-                q_shingles = make_shingles(q_text)
+                q_tokens = clean_tokens(q)
+                q_shingles = make_shingles(q_tokens)
                 q_mh = compute_minhash(q_shingles, num_perm=perms) # Use the loop variable!
                 
                 # Query the LSH
                 candidate_ids = temp_lsh.query(q_mh)
+                if not candidate_ids:
+                    fallback = sorted(
+                        temp_objs.items(),
+                        key=lambda x: -x[1].jaccard(q_mh),
+                    )[:30]
+                    candidate_ids = [str(cid) for cid, _ in fallback]
                 
                 # Re-rank (Standard Jaccard logic)
                 ranked = []
@@ -173,7 +204,7 @@ def run_experiments():
 
         # B. LSH Threshold (Bands)
         log_print("\n  B. Jaccard Threshold (implicitly affects LSH Bands):", report)
-        for thresh in [0.01, 0.1, 0.5]:
+        for thresh in [0.1, 0.2, 0.3]:
             temp_lsh = MinHashLSH(threshold=thresh, num_perm=128)
             for cid, mh in minhash_objs.items():
                 temp_lsh.insert(str(cid), mh)
@@ -181,7 +212,7 @@ def run_experiments():
             latencies = []
             for q in TEST_QUERIES[:5]:
                 t1 = time.perf_counter()
-                q_mh = compute_minhash(make_shingles(clean_string(q)), num_perm=128)
+                q_mh = compute_minhash(make_shingles(clean_tokens(q)), num_perm=128)
                 _ = temp_lsh.query(q_mh)
                 latencies.append(time.perf_counter() - t1)
             # Retrieve bands info
@@ -217,10 +248,10 @@ def run_experiments():
             
             # Measure LSH Indexing
             t0 = time.time()
-            s_lsh = MinHashLSH(threshold=0.01, num_perm=128)
+            s_lsh = MinHashLSH(threshold=0.2, num_perm=128)
             s_objs = {}
             for c in scaled_chunks:
-                sh = make_shingles(clean_string(c["text"]))
+                sh = make_shingles(clean_tokens(c["text"]))
                 mh = compute_minhash(sh, num_perm=128)
                 s_lsh.insert(str(c["chunk_id"]), mh)
                 s_objs[c["chunk_id"]] = mh
@@ -230,7 +261,7 @@ def run_experiments():
             latencies = []
             for q in TEST_QUERIES[:5]:
                 t1 = time.perf_counter()
-                q_mh = compute_minhash(make_shingles(clean_string(q)), num_perm=128)
+                q_mh = compute_minhash(make_shingles(clean_tokens(q)), num_perm=128)
                 _ = s_lsh.query(q_mh)
                 latencies.append(time.perf_counter() - t1)
             
@@ -244,7 +275,19 @@ def run_experiments():
         
         for idx, q in enumerate(TEST_QUERIES, 1):
             log_print(f"\n[Query {idx}] {q}", report)
-            res = hybrid_search(q, lsh_index, minhash_objs, simhash_fps, chunk_shingles, base_chunks, top_k=3)
+            res = fused_search(
+                q,
+                lsh_index,
+                minhash_objs,
+                simhash_fps,
+                chunk_shingles,
+                chunk_tokens,
+                base_chunks,
+                vectorizer,
+                tfidf_matrix,
+                top_k=3,
+                candidate_pool=50,
+            )
             
             if os.environ.get("GROQ_API_KEY"):
                 answer = generate_answer(q, res)

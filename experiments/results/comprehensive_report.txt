@@ -18,15 +18,15 @@ Loaded 178 chunks for baseline testing.
   PageRankWeight=0.20 | Avg Recall@10=47.33% | Weak(4/10/13) Recall@10=40.00% | Combined=0.4477
   Selected PageRank Weight -> 0.10
 
-  [TF-IDF] Build Time: 0.2675s | Memory: 0.75 MB | Avg Latency: 0.47 ms
-  [LSH]    Build Time: 0.7054s | Memory: 0.68 MB | Avg Latency: 0.86 ms
+  [TF-IDF] Build Time: 0.2138s | Memory: 0.75 MB | Avg Latency: 0.50 ms
+  [LSH]    Build Time: 0.6290s | Memory: 0.68 MB | Avg Latency: 0.92 ms
   [LSH-MinHash] Average Recall@10 (vs Exact Jaccard): 59.33%
   [LSH-Hybrid]  Average Recall@10 (vs Exact Jaccard): 40.67%
   [LSH-Fused]   Average Recall@10 (vs Exact Jaccard): 46.00%
   [LSH-Fused+PageRank] Average Recall@10 (vs Exact Jaccard): 47.33%
-  [LSH-Hybrid]  Avg Latency: 1.48 ms
-  [LSH-Fused]   Avg Latency: 2.35 ms
-  [LSH-Fused+PageRank] Avg Latency: 2.27 ms
+  [LSH-Hybrid]  Avg Latency: 1.89 ms
+  [LSH-Fused]   Avg Latency: 3.22 ms
+  [LSH-Fused+PageRank] Avg Latency: 3.28 ms
 
 >>> 1C. PRECISION/RECALL@K SUMMARY (mean +/- std)
   [TFIDF] P@3: 0.600 +/- 0.278 | R@3: 0.600 +/- 0.278
@@ -47,15 +47,15 @@ Loaded 178 chunks for baseline testing.
 
 >>> 2. PARAMETER SENSITIVITY ANALYSIS
   A. Number of Hash Functions (MinHash):
-    Perms=32  | Indexing: 1.07s | Avg Latency: 0.64ms | Recall@10: 32.00%
-    Perms=64  | Indexing: 1.20s | Avg Latency: 0.89ms | Recall@10: 38.00%
-    Perms=128 | Indexing: 1.16s | Avg Latency: 0.96ms | Recall@10: 46.00%
-    Perms=256 | Indexing: 1.24s | Avg Latency: 1.27ms | Recall@10: 60.00%
+    Perms=32  | Indexing: 1.29s | Avg Latency: 0.92ms | Recall@10: 32.00%
+    Perms=64  | Indexing: 1.10s | Avg Latency: 0.76ms | Recall@10: 38.00%
+    Perms=128 | Indexing: 1.36s | Avg Latency: 1.12ms | Recall@10: 46.00%
+    Perms=256 | Indexing: 1.33s | Avg Latency: 1.46ms | Recall@10: 60.00%
 
   B. Jaccard Threshold (implicitly affects LSH Bands):
-    Threshold=0.1  -> (Bands=64, Rows=2) | LSH Query Latency: 0.48ms
-    Threshold=0.2  -> (Bands=28, Rows=2) | LSH Query Latency: 0.46ms
-    Threshold=0.3  -> (Bands=37, Rows=3) | LSH Query Latency: 0.45ms
+    Threshold=0.1  -> (Bands=64, Rows=2) | LSH Query Latency: 0.52ms
+    Threshold=0.2  -> (Bands=28, Rows=2) | LSH Query Latency: 0.47ms
+    Threshold=0.3  -> (Bands=37, Rows=3) | LSH Query Latency: 0.48ms
 
   C. Hamming Threshold (SimHash):
     Threshold=10 | Avg candidates retrieved: 100.0
@@ -63,22 +63,22 @@ Loaded 178 chunks for baseline testing.
     Threshold=15 | Avg candidates retrieved: 80.2
 
   D. Stopwords Ablation (LSH preprocessing):
-    with_stopword_removal: Indexing=0.45s | Avg Latency=0.02ms | Recall@10=46.00%
-    without_stopword_removal: Indexing=1.67s | Avg Latency=0.03ms | Recall@10=32.00%
+    with_stopword_removal: Indexing=0.49s | Avg Latency=0.04ms | Recall@10=46.00%
+    without_stopword_removal: Indexing=0.84s | Avg Latency=0.03ms | Recall@10=32.00%
 
   E. Word vs Char Shingle Ablation:
     Word shingles (1,2): Recall@10=46.00%
-    Char shingles k=4: Indexing=0.75s | Avg Latency=0.03ms | Recall@10=30.00%
-    Char shingles k=5: Indexing=0.83s | Avg Latency=0.03ms | Recall@10=46.00%
-    Char shingles k=6: Indexing=0.86s | Avg Latency=0.02ms | Recall@10=44.00%
+    Char shingles k=4: Indexing=0.74s | Avg Latency=0.03ms | Recall@10=30.00%
+    Char shingles k=5: Indexing=0.86s | Avg Latency=0.03ms | Recall@10=46.00%
+    Char shingles k=6: Indexing=0.87s | Avg Latency=0.03ms | Recall@10=44.00%
 
 
 >>> 3. SCALABILITY TEST (Simulating Larger Datasets)
-  1x Corpus (178 chunks) | LSH Index Time: 0.45s | Memory: 0.68MB | Query Latency: 0.54ms | Recall@10 trend: 46.00%
-  2x Corpus (356 chunks) | LSH Index Time: 0.86s | Memory: 1.33MB | Query Latency: 0.53ms | Recall@10 trend: 38.00%
-  5x Corpus (890 chunks) | LSH Index Time: 2.65s | Memory: 3.30MB | Query Latency: 0.59ms | Recall@10 trend: 30.00%
-  10x Corpus (1780 chunks) | LSH Index Time: 4.31s | Memory: 6.57MB | Query Latency: 0.61ms | Recall@10 trend: 14.00%
-  20x Corpus (3560 chunks) | LSH Index Time: 9.34s | Memory: 13.13MB | Query Latency: 0.73ms | Recall@10 trend: 12.00%
+  1x Corpus (178 chunks) | LSH Index Time: 0.45s | Memory: 0.68MB | Query Latency: 0.52ms | Recall@10 trend: 46.00%
+  2x Corpus (356 chunks) | LSH Index Time: 0.87s | Memory: 1.33MB | Query Latency: 0.50ms | Recall@10 trend: 38.00%
+  5x Corpus (890 chunks) | LSH Index Time: 2.15s | Memory: 3.30MB | Query Latency: 0.68ms | Recall@10 trend: 30.00%
+  10x Corpus (1780 chunks) | LSH Index Time: 4.76s | Memory: 6.57MB | Query Latency: 0.60ms | Recall@10 trend: 14.00%
+  20x Corpus (3560 chunks) | LSH Index Time: 10.12s | Memory: 13.13MB | Query Latency: 0.65ms | Recall@10 trend: 12.00%
 
 
 >>> 4. FREQUENT ITEMSET MINING (QUERY PATTERNS)
@@ -92,11 +92,11 @@ Loaded 178 chunks for baseline testing.
   Saved PageRank chunk scores: /Users/ahsanriaz/Developer/scalable_qa_system/src/../experiments/results/pagerank_scores.csv
 
 >>> 5. MAPREDUCE/SON DISTRIBUTED SIMULATION
-  1x corpus (178 chunks, 4 shards) | Map index: 0.50s | Reduce latency: 1.31ms | Avg top-k size: 10.00
-  2x corpus (356 chunks, 4 shards) | Map index: 0.95s | Reduce latency: 1.54ms | Avg top-k size: 10.00
-  5x corpus (890 chunks, 4 shards) | Map index: 2.28s | Reduce latency: 2.42ms | Avg top-k size: 10.00
-  10x corpus (1780 chunks, 4 shards) | Map index: 4.37s | Reduce latency: 2.48ms | Avg top-k size: 10.00
-  20x corpus (3560 chunks, 4 shards) | Map index: 8.60s | Reduce latency: 4.26ms | Avg top-k size: 10.00
+  1x corpus (178 chunks, 4 shards) | Map index: 0.49s | Reduce latency: 1.42ms | Avg top-k size: 10.00
+  2x corpus (356 chunks, 4 shards) | Map index: 0.96s | Reduce latency: 1.59ms | Avg top-k size: 10.00
+  5x corpus (890 chunks, 4 shards) | Map index: 2.26s | Reduce latency: 2.00ms | Avg top-k size: 10.00
+  10x corpus (1780 chunks, 4 shards) | Map index: 4.39s | Reduce latency: 2.79ms | Avg top-k size: 10.00
+  20x corpus (3560 chunks, 4 shards) | Map index: 9.56s | Reduce latency: 8.12ms | Avg top-k size: 10.00
   SON frequent itemsets k=1: 6
   SON frequent itemsets k=2: 2
   SON top pair: cours | intent:general_policy (support=2)

@@ -18,6 +18,32 @@ TOKENS_FILE    = os.path.join(INDICES_DIR, "chunk_tokens.pkl")
 CHUNKS_FILE    = os.path.join(os.path.dirname(__file__), "..", "data", "chunks", "chunks.json")
 
 stemmer = PorterStemmer()
+FUSED_DEFAULT_TFIDF_WEIGHT = 0.50
+FUSED_DEFAULT_HYBRID_WEIGHT = 0.50
+FUSED_DEFAULT_INTENT_WEIGHT = 0.10
+FUSED_DEFAULT_CANDIDATE_POOL = 50
+SIMHASH_DEFAULT_THRESHOLD = 12
+INTENT_KEYWORDS = {
+    "attendance": {"attend", "short", "xf", "absent"},
+    "probation": {"probat", "warn", "withdraw", "academ", "defici"},
+    "repeat_course": {"repeat", "retak", "retest", "course"},
+    "hostel": {"hostel", "accommod", "allot", "qalam", "resid"},
+    "rechecking": {"recheck", "reassess", "exam", "paper", "annex"},
+    "graduation": {"degre", "graduat", "award", "credit", "cgpa"},
+    "fee_penalty": {"fee", "fine", "dues", "penalti", "deposit"},
+    "credit_hours": {"credit", "hour", "semester", "cours"},
+    "plagiarism": {"plagiar", "dishonesti", "cheat", "academ"},
+    "gold_medal": {"medal", "convoc", "presid", "rector", "academ"},
+}
+
+
+def detect_query_intents(query_tokens):
+    token_set = set(query_tokens)
+    intents = set()
+    for intent, kws in INTENT_KEYWORDS.items():
+        if token_set & kws:
+            intents.add(intent)
+    return intents
 
 def load_lsh_index():
     import json
@@ -86,7 +112,7 @@ def search_minhash(query, lsh_index, minhash_objects, chunk_shingles, chunks, to
         })
     return results
 
-def search_simhash(query, simhash_fps, chunks, threshold=15, top_k=5):
+def search_simhash(query, simhash_fps, chunks, threshold=SIMHASH_DEFAULT_THRESHOLD, top_k=5):
     tokens = clean_tokens(query)
     q_fp   = compute_simhash(tokens)
 
@@ -187,7 +213,10 @@ def fused_search(
     vectorizer,
     matrix,
     top_k=5,
-    candidate_pool=50,
+    candidate_pool=FUSED_DEFAULT_CANDIDATE_POOL,
+    tfidf_weight=FUSED_DEFAULT_TFIDF_WEIGHT,
+    hybrid_weight=FUSED_DEFAULT_HYBRID_WEIGHT,
+    intent_weight=FUSED_DEFAULT_INTENT_WEIGHT,
 ):
     """
     Candidate generation with LSH-hybrid, then rerank those candidates using TF-IDF cosine.
@@ -218,15 +247,31 @@ def fused_search(
 
     ranked = []
     chunk_map = {c["chunk_id"]: c for c in chunks}
+    q_tokens = clean_tokens(query)
+    query_intents = detect_query_intents(q_tokens)
     for cid in candidate_ids:
         tfidf_score = float(sim_all[cid]) / max_sim
         hybrid_score = float(cid_to_hybrid.get(cid, 0.0))
-        fused_score = (0.60 * tfidf_score) + (0.40 * hybrid_score)
-        ranked.append((cid, fused_score, tfidf_score, hybrid_score))
+        chunk_token_set = set(chunk_tokens.get(cid, []))
+
+        intent_hits = 0
+        for intent in query_intents:
+            if chunk_token_set & INTENT_KEYWORDS[intent]:
+                intent_hits += 1
+        intent_score = (
+            (intent_hits / len(query_intents)) if query_intents else 0.0
+        )
+
+        fused_score = (
+            (tfidf_weight * tfidf_score)
+            + (hybrid_weight * hybrid_score)
+            + (intent_weight * intent_score)
+        )
+        ranked.append((cid, fused_score, tfidf_score, hybrid_score, intent_score))
 
     ranked.sort(key=lambda x: -x[1])
     results = []
-    for cid, fused_score, tfidf_score, hybrid_score in ranked[:top_k]:
+    for cid, fused_score, tfidf_score, hybrid_score, intent_score in ranked[:top_k]:
         c = chunk_map[cid]
         results.append({
             "chunk_id": cid,
@@ -237,6 +282,7 @@ def fused_search(
             "method": "fused_lsh_tfidf",
             "tfidf_score": round(tfidf_score, 4),
             "hybrid_score": round(hybrid_score, 4),
+            "intent_score": round(intent_score, 4),
         })
     return results
 

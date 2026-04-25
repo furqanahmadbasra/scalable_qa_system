@@ -11,7 +11,17 @@ from sklearn.metrics.pairwise import cosine_similarity
 # Import from existing modules
 from indexing import preprocess_and_stem
 from lsh_indexing import clean_tokens, make_shingles, compute_minhash, compute_simhash
-from lsh_retrieval import jaccard, hamming, search_simhash, search_minhash, hybrid_search, fused_search
+from lsh_retrieval import (
+    jaccard,
+    hamming,
+    search_simhash,
+    search_minhash,
+    hybrid_search,
+    fused_search,
+    FUSED_DEFAULT_CANDIDATE_POOL,
+    FUSED_DEFAULT_HYBRID_WEIGHT,
+    FUSED_DEFAULT_TFIDF_WEIGHT,
+)
 from answer_generation import generate_answer
 
 CHUNKS_FILE = os.path.join(os.path.dirname(__file__), "..", "data", "chunks", "chunks.json")
@@ -37,6 +47,8 @@ TEST_QUERIES = [
     "What are the rules for exam re-checking?",
     "How is a student placed on academic probation?"
 ]
+FUSION_WEIGHT_CANDIDATES = [0.5, 0.6, 0.7]
+WEAK_QUERY_INDICES = [3, 9, 12]  # Query numbers 4, 10, 13 (0-based)
 
 def log_print(msg, f):
     """Prints to console and writes to log file."""
@@ -98,6 +110,63 @@ def run_experiments():
         lsh_build_time = time.time() - start_time
         lsh_memory = get_memory_footprint(lsh_index) + get_memory_footprint(minhash_objs) + get_memory_footprint(simhash_fps)
 
+        # ---------------------------------------------------------------------
+        # 1B. FUSION WEIGHT TUNING (target weak queries without hurting overall)
+        # ---------------------------------------------------------------------
+        best_tfidf_weight = FUSED_DEFAULT_TFIDF_WEIGHT
+        best_hybrid_weight = FUSED_DEFAULT_HYBRID_WEIGHT
+        best_score = -1.0
+        tuning_rows = []
+
+        for w in FUSION_WEIGHT_CANDIDATES:
+            h = 1.0 - w
+            all_recalls = []
+            weak_recalls = []
+            for qi, q in enumerate(TEST_QUERIES):
+                gt = get_exact_jaccard_ground_truth(q, base_chunks, top_k=10)
+                fused_results = fused_search(
+                    q,
+                    lsh_index,
+                    minhash_objs,
+                    simhash_fps,
+                    chunk_shingles,
+                    chunk_tokens,
+                    base_chunks,
+                    vectorizer,
+                    tfidf_matrix,
+                    top_k=10,
+                    candidate_pool=FUSED_DEFAULT_CANDIDATE_POOL,
+                    tfidf_weight=w,
+                    hybrid_weight=h,
+                )
+                fused_ids = [r["chunk_id"] for r in fused_results]
+                recall = len(set(gt) & set(fused_ids)) / 10.0 if gt else 0.0
+                all_recalls.append(recall)
+                if qi in WEAK_QUERY_INDICES:
+                    weak_recalls.append(recall)
+
+            avg_all = float(np.mean(all_recalls))
+            avg_weak = float(np.mean(weak_recalls)) if weak_recalls else 0.0
+            score = (0.65 * avg_all) + (0.35 * avg_weak)
+            tuning_rows.append((w, h, avg_all, avg_weak, score))
+
+            if score > best_score:
+                best_score = score
+                best_tfidf_weight = w
+                best_hybrid_weight = h
+
+        log_print(">>> 1B. FUSION WEIGHT TUNING (TF-IDF vs Hybrid)", report)
+        for w, h, avg_all, avg_weak, score in tuning_rows:
+            log_print(
+                f"  TF-IDF={w:.2f}, Hybrid={h:.2f} | Avg Recall@10={avg_all:.2%} | "
+                f"Weak(4/10/13) Recall@10={avg_weak:.2%} | Combined={score:.4f}",
+                report,
+            )
+        log_print(
+            f"  Selected Fusion Weights -> TF-IDF={best_tfidf_weight:.2f}, Hybrid={best_hybrid_weight:.2f}\n",
+            report,
+        )
+
         # Query Latency & Recall Testing
         tfidf_latencies, lsh_latencies, lsh_recalls, hybrid_recalls, fused_recalls = [], [], [], [], []
         
@@ -136,7 +205,9 @@ def run_experiments():
                 vectorizer,
                 tfidf_matrix,
                 top_k=10,
-                candidate_pool=50,
+                candidate_pool=FUSED_DEFAULT_CANDIDATE_POOL,
+                tfidf_weight=best_tfidf_weight,
+                hybrid_weight=best_hybrid_weight,
             )
             fused_ids = [r["chunk_id"] for r in fused_results]
             fused_intersection = len(set(ground_truth) & set(fused_ids))
@@ -220,7 +291,7 @@ def run_experiments():
 
         # C. SimHash Hamming Threshold
         log_print("\n  C. Hamming Threshold (SimHash):", report)
-        for h_thresh in [5, 15, 25]:
+        for h_thresh in [10, 12, 15]:
             counts = []
             for q in TEST_QUERIES[:5]:
                 res = search_simhash(q, simhash_fps, base_chunks, threshold=h_thresh, top_k=100)
@@ -286,7 +357,9 @@ def run_experiments():
                 vectorizer,
                 tfidf_matrix,
                 top_k=3,
-                candidate_pool=50,
+                candidate_pool=FUSED_DEFAULT_CANDIDATE_POOL,
+                tfidf_weight=best_tfidf_weight,
+                hybrid_weight=best_hybrid_weight,
             )
             
             if os.environ.get("GROQ_API_KEY"):

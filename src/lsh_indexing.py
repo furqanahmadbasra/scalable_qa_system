@@ -7,6 +7,7 @@ import hashlib
 from datasketch import MinHash, MinHashLSH
 from tqdm import tqdm
 from nltk.stem import PorterStemmer
+from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
 
 
 CHUNKS_FILE     = os.path.join(os.path.dirname(__file__), "..", "data", "chunks", "chunks.json")
@@ -15,35 +16,56 @@ LSH_INDEX_FILE  = os.path.join(INDICES_DIR, "minhash_lsh_index.pkl")
 MINHASH_FILE    = os.path.join(INDICES_DIR, "minhash_objects.pkl")
 SIMHASH_FILE    = os.path.join(INDICES_DIR, "simhash_fingerprints.pkl")
 SHINGLES_FILE   = os.path.join(INDICES_DIR, "chunk_shingles.pkl")
+TOKENS_FILE     = os.path.join(INDICES_DIR, "chunk_tokens.pkl")
 
-# minhash params — 128 hash functions, threshold 0.01 (extremely low because short queries have tiny Jaccard against long chunks)
+# minhash params
 NUM_PERM  = 128
-THRESHOLD = 0.01
+THRESHOLD = 0.2
 
 # simhash bit width
 SIMHASH_BITS = 64
 
 stemmer = PorterStemmer()
+PRESERVED_POLICY_WORDS = {"not", "no", "nor", "must", "shall", "may"}
+LSH_STOPWORDS = ENGLISH_STOP_WORDS - PRESERVED_POLICY_WORDS
 
 
 def clean_string(text):
-    text = text.lower()
-    text = re.sub(r'[^a-z0-9\s]', ' ', text)
-    tokens = text.split()
-    stemmed = [stemmer.stem(t) for t in tokens]
-    return " ".join(stemmed)
+    return " ".join(clean_tokens(text))
 
 
 def clean_tokens(text):
-    return clean_string(text).split()
+    text = text.lower().replace("_", " ")
+    text = re.sub(r"[^a-z0-9\-\s]", " ", text)
+
+    normalized = []
+    for token in text.split():
+        if "-" in token:
+            parts = [p for p in token.split("-") if p]
+            if not parts:
+                continue
+            # Preserve meaning for both split and joined forms: "credit-hour" ->
+            # ["credit", "hour", "credithour"]
+            normalized.extend(parts)
+            normalized.append("".join(parts))
+        else:
+            normalized.append(token)
+
+    filtered = []
+    for token in normalized:
+        if len(token) <= 1:
+            continue
+        if token in LSH_STOPWORDS:
+            continue
+        filtered.append(stemmer.stem(token))
+    return filtered
 
 
-def make_shingles(text):
+def make_shingles(tokens):
     """Word-level unigrams and bigrams to capture exact tokens and phrases."""
-    words = text.split()
-    shingles = set(words)  # Add all unigrams
-    for i in range(len(words) - 1):
-        shingles.add(f"{words[i]} {words[i+1]}")  # Add bigrams
+    shingles = set(tokens)
+    for i in range(len(tokens) - 1):
+        shingles.add(f"{tokens[i]} {tokens[i+1]}")
     return shingles
 
 
@@ -89,12 +111,12 @@ if __name__ == "__main__":
     minhash_objects = {}   # chunk_id → MinHash object
     simhash_fps     = {}   # chunk_id → int fingerprint
     chunk_shingles  = {}   # chunk_id → set of shingles (for jaccard re-ranking later)
+    chunk_tokens    = {}   # chunk_id → list of normalized tokens
 
     for chunk in tqdm(chunks, desc="  indexing", unit="chunk"):
         cid       = chunk["chunk_id"]
-        text_c    = clean_string(chunk["text"])
-        tokens    = text_c.split()
-        shingles  = make_shingles(text_c)
+        tokens    = clean_tokens(chunk["text"])
+        shingles  = make_shingles(tokens)
 
         mh = compute_minhash(shingles)
         sh = compute_simhash(tokens)
@@ -103,6 +125,7 @@ if __name__ == "__main__":
         minhash_objects[cid] = mh
         simhash_fps[cid]     = sh
         chunk_shingles[cid]  = shingles
+        chunk_tokens[cid]    = tokens
 
     os.makedirs(INDICES_DIR, exist_ok=True)
 
@@ -114,6 +137,8 @@ if __name__ == "__main__":
         pickle.dump(simhash_fps, f)
     with open(SHINGLES_FILE, "wb") as f:
         pickle.dump(chunk_shingles, f)
+    with open(TOKENS_FILE, "wb") as f:
+        pickle.dump(chunk_tokens, f)
 
     print(f"done — indices saved to {INDICES_DIR}")
     print(f"  lsh bands/rows: b={lsh_index.b}, r={lsh_index.r}")

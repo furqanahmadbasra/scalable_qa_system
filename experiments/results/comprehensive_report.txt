@@ -5,143 +5,179 @@
 Loaded 178 chunks for baseline testing.
 
 >>> 1. EXACT (TF-IDF) VS APPROXIMATE (LSH) RETRIEVAL
-  [TF-IDF] Build Time: 0.3170s | Memory: 0.75 MB | Avg Latency: 1.14 ms
-  [LSH]    Build Time: 1.3178s | Memory: 0.92 MB | Avg Latency: 3.10 ms
-  [LSH]    Average Recall@10 (vs Exact Jaccard): 65.33%
+>>> 1B. FUSION WEIGHT TUNING (TF-IDF vs Hybrid)
+  TF-IDF=0.50, Hybrid=0.50 | Avg Recall@10=46.00% | Weak(4/10/13) Recall@10=40.00% | Combined=0.4390
+  TF-IDF=0.60, Hybrid=0.40 | Avg Recall@10=46.00% | Weak(4/10/13) Recall@10=40.00% | Combined=0.4390
+  TF-IDF=0.70, Hybrid=0.30 | Avg Recall@10=45.33% | Weak(4/10/13) Recall@10=40.00% | Combined=0.4347
+  Selected Fusion Weights -> TF-IDF=0.50, Hybrid=0.50
+
+>>> 1D. PAGERANK WEIGHT TUNING
+  PageRankWeight=0.00 | Avg Recall@10=46.00% | Weak(4/10/13) Recall@10=40.00% | Combined=0.4390
+  PageRankWeight=0.10 | Avg Recall@10=47.33% | Weak(4/10/13) Recall@10=40.00% | Combined=0.4477
+  PageRankWeight=0.15 | Avg Recall@10=47.33% | Weak(4/10/13) Recall@10=40.00% | Combined=0.4477
+  PageRankWeight=0.20 | Avg Recall@10=47.33% | Weak(4/10/13) Recall@10=40.00% | Combined=0.4477
+  Selected PageRank Weight -> 0.10
+
+  [TF-IDF] Build Time: 0.2138s | Memory: 0.75 MB | Avg Latency: 0.50 ms
+  [LSH]    Build Time: 0.6290s | Memory: 0.68 MB | Avg Latency: 0.92 ms
+  [LSH-MinHash] Average Recall@10 (vs Exact Jaccard): 59.33%
+  [LSH-Hybrid]  Average Recall@10 (vs Exact Jaccard): 40.67%
+  [LSH-Fused]   Average Recall@10 (vs Exact Jaccard): 46.00%
+  [LSH-Fused+PageRank] Average Recall@10 (vs Exact Jaccard): 47.33%
+  [LSH-Hybrid]  Avg Latency: 1.89 ms
+  [LSH-Fused]   Avg Latency: 3.22 ms
+  [LSH-Fused+PageRank] Avg Latency: 3.28 ms
+
+>>> 1C. PRECISION/RECALL@K SUMMARY (mean +/- std)
+  [TFIDF] P@3: 0.600 +/- 0.278 | R@3: 0.600 +/- 0.278
+  [TFIDF] P@5: 0.560 +/- 0.209 | R@5: 0.560 +/- 0.209
+  [TFIDF] P@10: 0.633 +/- 0.145 | R@10: 0.633 +/- 0.145
+  [MINHASH] P@3: 0.600 +/- 0.389 | R@3: 0.600 +/- 0.389
+  [MINHASH] P@5: 0.587 +/- 0.314 | R@5: 0.587 +/- 0.314
+  [MINHASH] P@10: 0.593 +/- 0.208 | R@10: 0.593 +/- 0.208
+  [HYBRID] P@3: 0.422 +/- 0.285 | R@3: 0.422 +/- 0.285
+  [HYBRID] P@5: 0.413 +/- 0.200 | R@5: 0.413 +/- 0.200
+  [HYBRID] P@10: 0.407 +/- 0.169 | R@10: 0.407 +/- 0.169
+  [FUSED] P@3: 0.533 +/- 0.293 | R@3: 0.533 +/- 0.293
+  [FUSED] P@5: 0.440 +/- 0.222 | R@5: 0.440 +/- 0.222
+  [FUSED] P@10: 0.460 +/- 0.158 | R@10: 0.460 +/- 0.158
+  [FUSED_PAGERANK] P@3: 0.556 +/- 0.263 | R@3: 0.556 +/- 0.263
+  [FUSED_PAGERANK] P@5: 0.440 +/- 0.222 | R@5: 0.440 +/- 0.222
+  [FUSED_PAGERANK] P@10: 0.473 +/- 0.161 | R@10: 0.473 +/- 0.161
 
 >>> 2. PARAMETER SENSITIVITY ANALYSIS
   A. Number of Hash Functions (MinHash):
-    Perms=32  | Indexing: 2.85s | Avg Latency: 0.83ms | Recall@10: 10.00%
-    Perms=64  | Indexing: 2.85s | Avg Latency: 1.56ms | Recall@10: 30.00%
-    Perms=128 | Indexing: 3.01s | Avg Latency: 3.38ms | Recall@10: 58.00%
-    Perms=256 | Indexing: 3.19s | Avg Latency: 3.55ms | Recall@10: 86.00%
+    Perms=32  | Indexing: 1.29s | Avg Latency: 0.92ms | Recall@10: 32.00%
+    Perms=64  | Indexing: 1.10s | Avg Latency: 0.76ms | Recall@10: 38.00%
+    Perms=128 | Indexing: 1.36s | Avg Latency: 1.12ms | Recall@10: 46.00%
+    Perms=256 | Indexing: 1.33s | Avg Latency: 1.46ms | Recall@10: 60.00%
 
   B. Jaccard Threshold (implicitly affects LSH Bands):
-    Threshold=0.01 -> (Bands=128, Rows=1) | LSH Query Latency: 0.76ms
-    Threshold=0.1  -> (Bands=64, Rows=2) | LSH Query Latency: 0.77ms
-    Threshold=0.5  -> (Bands=25, Rows=5) | LSH Query Latency: 0.68ms
+    Threshold=0.1  -> (Bands=64, Rows=2) | LSH Query Latency: 0.52ms
+    Threshold=0.2  -> (Bands=28, Rows=2) | LSH Query Latency: 0.47ms
+    Threshold=0.3  -> (Bands=37, Rows=3) | LSH Query Latency: 0.48ms
 
   C. Hamming Threshold (SimHash):
-    Threshold=5  | Avg candidates retrieved: 100.0
+    Threshold=10 | Avg candidates retrieved: 100.0
+    Threshold=12 | Avg candidates retrieved: 100.0
     Threshold=15 | Avg candidates retrieved: 80.2
-    Threshold=25 | Avg candidates retrieved: 76.4
+
+  D. Stopwords Ablation (LSH preprocessing):
+    with_stopword_removal: Indexing=0.49s | Avg Latency=0.04ms | Recall@10=46.00%
+    without_stopword_removal: Indexing=0.84s | Avg Latency=0.03ms | Recall@10=32.00%
+
+  E. Word vs Char Shingle Ablation:
+    Word shingles (1,2): Recall@10=46.00%
+    Char shingles k=4: Indexing=0.74s | Avg Latency=0.03ms | Recall@10=30.00%
+    Char shingles k=5: Indexing=0.86s | Avg Latency=0.03ms | Recall@10=46.00%
+    Char shingles k=6: Indexing=0.87s | Avg Latency=0.03ms | Recall@10=44.00%
 
 
 >>> 3. SCALABILITY TEST (Simulating Larger Datasets)
-  1x Corpus (178 chunks) | LSH Index Time: 1.08s | Query Latency: 0.80ms
-  2x Corpus (356 chunks) | LSH Index Time: 2.16s | Query Latency: 0.89ms
-  5x Corpus (890 chunks) | LSH Index Time: 5.18s | Query Latency: 0.80ms
+  1x Corpus (178 chunks) | LSH Index Time: 0.45s | Memory: 0.68MB | Query Latency: 0.52ms | Recall@10 trend: 46.00%
+  2x Corpus (356 chunks) | LSH Index Time: 0.87s | Memory: 1.33MB | Query Latency: 0.50ms | Recall@10 trend: 38.00%
+  5x Corpus (890 chunks) | LSH Index Time: 2.15s | Memory: 3.30MB | Query Latency: 0.68ms | Recall@10 trend: 30.00%
+  10x Corpus (1780 chunks) | LSH Index Time: 4.76s | Memory: 6.57MB | Query Latency: 0.60ms | Recall@10 trend: 14.00%
+  20x Corpus (3560 chunks) | LSH Index Time: 10.12s | Memory: 13.13MB | Query Latency: 0.65ms | Recall@10 trend: 12.00%
 
 
->>> 4. QUALITATIVE EVALUATION (Answers for 15 Queries)
+>>> 4. FREQUENT ITEMSET MINING (QUERY PATTERNS)
+  Query log records: 15 | transactions: 15
+  Frequent itemsets k=1: 6
+  Frequent itemsets k=2: 2
+  Top pair pattern: cours | intent:general_policy (support=2)
+  Saved query log: /Users/ahsanriaz/Developer/scalable_qa_system/src/../experiments/results/query_log.csv
+  Saved itemsets CSV: /Users/ahsanriaz/Developer/scalable_qa_system/src/../experiments/results/frequent_itemsets_report.csv
+  Saved itemsets report: /Users/ahsanriaz/Developer/scalable_qa_system/src/../experiments/results/frequent_itemsets_report.txt
+  Saved PageRank chunk scores: /Users/ahsanriaz/Developer/scalable_qa_system/src/../experiments/results/pagerank_scores.csv
+
+>>> 5. MAPREDUCE/SON DISTRIBUTED SIMULATION
+  1x corpus (178 chunks, 4 shards) | Map index: 0.49s | Reduce latency: 1.42ms | Avg top-k size: 10.00
+  2x corpus (356 chunks, 4 shards) | Map index: 0.96s | Reduce latency: 1.59ms | Avg top-k size: 10.00
+  5x corpus (890 chunks, 4 shards) | Map index: 2.26s | Reduce latency: 2.00ms | Avg top-k size: 10.00
+  10x corpus (1780 chunks, 4 shards) | Map index: 4.39s | Reduce latency: 2.79ms | Avg top-k size: 10.00
+  20x corpus (3560 chunks, 4 shards) | Map index: 9.56s | Reduce latency: 8.12ms | Avg top-k size: 10.00
+  SON frequent itemsets k=1: 6
+  SON frequent itemsets k=2: 2
+  SON top pair: cours | intent:general_policy (support=2)
+  Saved distributed scaling CSV: /Users/ahsanriaz/Developer/scalable_qa_system/src/../experiments/results/distributed_scaling_report.csv
+  Saved distributed scaling report: /Users/ahsanriaz/Developer/scalable_qa_system/src/../experiments/results/distributed_scaling_report.txt
+  Saved SON itemsets CSV: /Users/ahsanriaz/Developer/scalable_qa_system/src/../experiments/results/son_itemsets_report.csv
+  Saved SON itemsets report: /Users/ahsanriaz/Developer/scalable_qa_system/src/../experiments/results/son_itemsets_report.txt
+
+>>> 6. QUALITATIVE EVALUATION (Answers for 15 Queries)
 
 [Query 1] What is the minimum GPA requirement?
-  [LLM Answer] I cannot find this information in the provided handbook excerpts.
-  [Evidence] Source: ug_handbook.pdf (Pg 105) - Score: 0.1095
-             "NUST Undergraduate Student Handbook 101 c. Assistant Director Hostels (Male) d. Assistant Director Hostels (Female) e. Assistant Director Hostels (Mes..."
+  [LLM Answer] Skipped (No GROQ_API_KEY found). Showing top retrieved context instead:
+  [Evidence] Source: pg_handbook.pdf (Pg 34) - Score: 0.6072
+             "NUST Postgraduate Student Handbook 31 CHAPTER 5: Award of Ph.D. Degree and Academic Deficiencies for Ph.D. Students 1. Award of Ph.D. Degree. On recom..."
 
 [Query 2] What happens if a student fails a course?
-  [LLM Answer] According to Excerpt 1, if a student fails a course, they will receive an F grade. Additionally, if a student fails a Major Field Course, they will not be promoted to the next semester (7th semester for Bachelor of Industrial Design and 9th semester for Bachelor of Architecture) as per Excerpt 2, point c.
-
-For non-credited courses, a student will receive an F/XF grade if their attendance falls below 75% (Excerpt 1, point 6).
-  [Evidence] Source: ug_handbook.pdf (Pg 31) - Score: 0.1728
-             "NUST Undergraduate Student Handbook 27 5. Academic Standards for Award of Degree. The Grade Point will be awarded based on the absolute grading system..."
+  [LLM Answer] Skipped (No GROQ_API_KEY found). Showing top retrieved context instead:
+  [Evidence] Source: ug_handbook.pdf (Pg 41) - Score: 0.7036
+             "NUST Undergraduate Student Handbook 37 Note: If a student is likely to be withdrawn on academic deficiencies, s/he will be duly warned, and counselled..."
 
 [Query 3] What is the attendance policy?
-  [LLM Answer] I cannot find the attendance policy in the provided handbook excerpts.
-  [Evidence] Source: pg_handbook.pdf (Pg 96) - Score: 0.1176
-             "NUST Postgraduate Student Handbook 93 Annex B to Para 22 to Chapter 2 Re-Checking of Papers 1. Fill out the re-checking application form completely. 2..."
-
-[Query 4] How many times can a course be repeated?
-  [LLM Answer] I cannot find this information in the provided handbook excerpts.
-  [Evidence] Source: ug_handbook.pdf (Pg 31) - Score: 0.1213
-             "NUST Undergraduate Student Handbook 27 5. Academic Standards for Award of Degree. The Grade Point will be awarded based on the absolute grading system..."
-
-[Query 5] What is the policy on plagiarism?
-  [LLM Answer] I cannot find this information in the provided handbook excerpts.
-  [Evidence] Source: ug_handbook.pdf (Pg 49) - Score: 0.1465
-             "NUST Undergraduate Student Handbook 45 (4) Suspension on reasons beyond the student's control or authorized grounds/sanctioned leave from the competen..."
-
-[Query 6] How are final grades calculated?
-  [LLM Answer] According to Excerpt 1, the performance of each student in a course of study shall be graded as follows:
-
-Grades Numerical Grade Grade Point
-A 4.0
-B+ 3.50
-B 3.0
-C+ 2.50
-C 2.00
-D+ 1.50
-D 1.00
-F 0.00
-I Incomplete
-W Dropped
-Q Qualified
-T Transfer
-XF 0.00 (F Grade due to shortage of attendance)
-
-It is also mentioned in Excerpt 1 that the University policy is to work out GPA by awarding relative grading on a scale of 1.00-4.00 points. To earn course credits, a student must obtain a minimum of 1.0-grade point (D).
-  [Evidence] Source: ug_handbook.pdf (Pg 45) - Score: 0.0889
+  [LLM Answer] Skipped (No GROQ_API_KEY found). Showing top retrieved context instead:
+  [Evidence] Source: ug_handbook.pdf (Pg 45) - Score: 0.7005
              "NUST Undergraduate Student Handbook 41 Class Participation - - 0 05* Assignments / Project(s) / Case Studies Own time - 10 40 * Shall be allocated onl..."
 
-[Query 7] Can a student freeze a semester?
-  [LLM Answer] According to Excerpt 3 (Source: ug_handbook.pdf, Page 42), a student may seek deferment from regular studies, which is referred to as "Deferment of Semester(s)". However, the term "freeze a semester" is not explicitly mentioned in the provided handbook excerpts.
+[Query 4] How many times can a course be repeated?
+  [LLM Answer] Skipped (No GROQ_API_KEY found). Showing top retrieved context instead:
+  [Evidence] Source: ug_handbook.pdf (Pg 41) - Score: 0.7324
+             "NUST Undergraduate Student Handbook 37 Note: If a student is likely to be withdrawn on academic deficiencies, s/he will be duly warned, and counselled..."
 
-The closest related information is about deferment, which allows a student to repeat courses already studied on payment of the prescribed fee for repetition of courses, but not permitted to study new courses.
-  [Evidence] Source: ug_handbook.pdf (Pg 25) - Score: 0.1766
-             "NUST Undergraduate Student Handbook 21 c. Compulsions. While on probation, a student shall: (1) contact concerned faculty for guidance; and, (2) keep ..."
+[Query 5] What is the policy on plagiarism?
+  [LLM Answer] Skipped (No GROQ_API_KEY found). Showing top retrieved context instead:
+  [Evidence] Source: ug_handbook.pdf (Pg 42) - Score: 0.6721
+             "38 NUST Undergraduate Student Handbook Semester subject to conditions laid down in chapter 8 (Summer Semester & Summer Camps). However, for Major Fiel..."
+
+[Query 6] How are final grades calculated?
+  [LLM Answer] Skipped (No GROQ_API_KEY found). Showing top retrieved context instead:
+  [Evidence] Source: ug_handbook.pdf (Pg 19) - Score: 0.5803
+             "NUST Undergraduate Student Handbook 15 17. For purely theoretical and purely practical courses, the grading scheme is evident in the suggested format...."
+
+[Query 7] Can a student freeze a semester?
+  [LLM Answer] Skipped (No GROQ_API_KEY found). Showing top retrieved context instead:
+  [Evidence] Source: ug_handbook.pdf (Pg 70) - Score: 0.6256
+             "66 NUST Undergraduate Student Handbook 11. Other Academic Provisions. a. Registration of number of CHs per Semester. NUST offers flexibility to the st..."
 
 [Query 8] What are the requirements for graduation?
-  [LLM Answer] According to Excerpt 1, the requirements for graduation are as follows:
-
-On recommendations of the FBS of the School, the University will award Master degree to the students who satisfy the following conditions:
-
-- For 16 years education graduates with Economics and Business Administration background: 36 credit hours, 1-4 years duration.
-- For 16 years education graduates with a Psychology background: 38 credit hours, 1-4 years duration.
-- For 16 years education graduates with Mass Communication/Journalism/Media Studies/ Public Relations background: 30 credit hours, 1-4 years duration.
-- For 16 years education graduates with Master or Bachelors (Four Years) degree from any academic background: 30 credit hours, 2-4 years duration.
-- For 16 years education graduates in Engineering/ BBA /MBA/B.Com from HEC/ PEC affiliated institution: 36 credit hours, 1-4 years duration.
-- For 16 years education graduates with Master or Bachelor degree in relevant discipline: 36 credit hours, 2-4 years duration.
-- For 16 years education graduates (Engineering, IT, Management and Social Sciences): 36 credit hours, 1-4 years duration.
-- For 16 years education graduates with B. Arch degree from HEC recognized institute and accredited by PCATP: 43 credit hours, 1-4 years duration.
-
-These requirements are specified in Excerpt 1, Chapter 4, Award of Master Degree in Business Administration/Executive Master in Business Administration/Social Sciences.
-  [Evidence] Source: pg_handbook.pdf (Pg 25) - Score: 0.1193
-             "NUST Postgraduate Student Handbook 22 CHAPTER 4: Award of Master Degree in Business Administration/Executive Master in Business Administration/Social ..."
+  [LLM Answer] Skipped (No GROQ_API_KEY found). Showing top retrieved context instead:
+  [Evidence] Source: ug_handbook.pdf (Pg 57) - Score: 0.6835
+             "NUST Undergraduate Student Handbook 53 4. Change of Programme. Provision for change of program on completion of 1st year of studies is available to NU..."
 
 [Query 9] Is there a penalty for late fee submission?
-  [LLM Answer] I cannot find information about late fee submission penalties in the provided handbook excerpts.
-  [Evidence] Source: ug_handbook.pdf (Pg 81) - Score: 0.107
-             "NUST Undergraduate Student Handbook 77 Chapter 11: NUST Code of Conduct General 1. NUST is a leading research-intensive university in Pakistan compara..."
+  [LLM Answer] Skipped (No GROQ_API_KEY found). Showing top retrieved context instead:
+  [Evidence] Source: pg_handbook.pdf (Pg 83) - Score: 0.5948
+             "NUST Postgraduate Student Handbook 80 9. Hostel Dues a. Hostel Charges (1) Hostel Security - Rs 15,000/- (Refundable) (2) Single occupancy - Rs 11,000..."
 
 [Query 10] What is the maximum credit hour limit?
-  [LLM Answer] I cannot find this information in the provided handbook excerpts.
-  [Evidence] Source: pg_handbook.pdf (Pg 86) - Score: 0.1254
-             "NUST Postgraduate Student Handbook 83 (6) Disturbing other fellow residents by playing loud music or any such instruments at a high volume. (7) No ele..."
+  [LLM Answer] Skipped (No GROQ_API_KEY found). Showing top retrieved context instead:
+  [Evidence] Source: pg_handbook.pdf (Pg 19) - Score: 0.6757
+             "NUST Postgraduate Student Handbook 16 CHAPTER 3: Award of Master Degrees and Academic Standards for Master Students (Less Business & Social Sciences) ..."
 
 [Query 11] How to apply for a hostel?
-  [LLM Answer] To apply for a hostel, you need to follow the steps mentioned in Excerpt 2, specifically under the heading "Temporary Students" (Page 97 of ug_handbook.pdf). 
-
-According to Excerpt 2, an application form is available at the hostel's office, which requires the signature of parents/guardians.
-  [Evidence] Source: ug_handbook.pdf (Pg 82) - Score: 0.1398
-             "78 NUST Undergraduate Student Handbook a. Cheating. Intentionally using or attempting to use unauthorized materials, information, or study aids in any..."
-
-[Query 12] What is the policy for dropping a course?
-  [LLM Answer] I cannot find this information in the provided handbook excerpts.
-  [Evidence] Source: ug_handbook.pdf (Pg 95) - Score: 0.1569
+  [LLM Answer] Skipped (No GROQ_API_KEY found). Showing top retrieved context instead:
+  [Evidence] Source: ug_handbook.pdf (Pg 95) - Score: 0.7267
              "NUST Undergraduate Student Handbook 91 Chapter 12: Living on Campus 1. Introduction. NUST Hostels have been established for the outstation National an..."
 
+[Query 12] What is the policy for dropping a course?
+  [LLM Answer] Skipped (No GROQ_API_KEY found). Showing top retrieved context instead:
+  [Evidence] Source: pg_handbook.pdf (Pg 29) - Score: 0.6957
+             "NUST Postgraduate Student Handbook 26 9. Award of F, I, and W Grades a. Award of Grade F. In addition to the F grade awarded based on the academic fai..."
+
 [Query 13] Who is eligible for a gold medal?
-  [LLM Answer] I cannot find this information in the provided handbook excerpts.
-  [Evidence] Source: ug_handbook.pdf (Pg 77) - Score: 0.1252
-             "NUST Undergraduate Student Handbook 73 Chapter 9: Services for International Students 1. Visa Regulations: Students shall be responsible to obtain and..."
+  [LLM Answer] Skipped (No GROQ_API_KEY found). Showing top retrieved context instead:
+  [Evidence] Source: ug_handbook.pdf (Pg 72) - Score: 0.6795
+             "68 NUST Undergraduate Student Handbook Transcript/Degree) by submitting Rs 700 per copy. All the Information regarding Attestation/Verification is ava..."
 
 [Query 14] What are the rules for exam re-checking?
-  [LLM Answer] I cannot find this information in the provided handbook excerpts.
-  [Evidence] Source: ug_handbook.pdf (Pg 14) - Score: 0.1087
-             "10 NUST Undergraduate Student Handbook Chapter 2: Scheme of Studies, Examinations, and Academic Standards for the Award of Degrees 1. Credit Hours. Th..."
+  [LLM Answer] Skipped (No GROQ_API_KEY found). Showing top retrieved context instead:
+  [Evidence] Source: pg_handbook.pdf (Pg 18) - Score: 0.682
+             "NUST Postgraduate Student Handbook 15 22. Re-assessment/Re-checking of Papers. Re-assessment/re-checking of papers means a re-evaluation of answer(s) ..."
 
 [Query 15] How is a student placed on academic probation?
-  [LLM Answer] I cannot find this information in the provided handbook excerpts.
-  [Evidence] Source: pg_handbook.pdf (Pg 18) - Score: 0.145
-             "NUST Postgraduate Student Handbook 15 22. Re-assessment/Re-checking of Papers. Re-assessment/re-checking of papers means a re-evaluation of answer(s) ..."
+  [LLM Answer] Skipped (No GROQ_API_KEY found). Showing top retrieved context instead:
+  [Evidence] Source: ug_handbook.pdf (Pg 24) - Score: 0.7391
+             "20 NUST Undergraduate Student Handbook (a) Issue warning to the student (b) Place the student on probation (c) Recommend suspension (d) Recommend with..."

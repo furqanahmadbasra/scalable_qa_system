@@ -1,0 +1,8 @@
+MAPREDUCE-STYLE DISTRIBUTED LSH REPORT
+=====================================
+
+1x (178 chunks, 4 shards) | index=0.49s | latency=1.42ms | avg_topk=10.00
+2x (356 chunks, 4 shards) | index=0.96s | latency=1.59ms | avg_topk=10.00
+5x (890 chunks, 4 shards) | index=2.26s | latency=2.00ms | avg_topk=10.00
+10x (1780 chunks, 4 shards) | index=4.39s | latency=2.79ms | avg_topk=10.00
+20x (3560 chunks, 4 shards) | index=9.56s | latency=8.12ms | avg_topk=10.00
